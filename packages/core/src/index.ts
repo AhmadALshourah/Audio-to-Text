@@ -1,4 +1,5 @@
 export * from './errors.js';
+export * from './user-service.js';
 export * from './validation.js';
 export * from './quota.js';
 export * from './whisper.js';

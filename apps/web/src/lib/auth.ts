@@ -1,30 +1,35 @@
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@audio-to-text/db';
-import { UnauthorizedError } from '@audio-to-text/core';
+import { UnauthorizedError, upsertUserFromClerk } from '@audio-to-text/core';
 
 /**
- * Resolve the current user's database id.
+ * Resolve the current user's database id from the Clerk session.
  *
- * ⚠️ Phase 4 seam — auth is NOT wired yet. In development this resolves to the
- * seeded demo user so the API can be exercised end-to-end. Phase 5 replaces the
- * body with Clerk:
- *
- *   const { userId: clerkId } = auth();
- *   if (!clerkId) throw new UnauthorizedError();
- *   ...map clerkId -> User.id (provisioned via the Clerk webhook)...
- *
- * In production this throws until Clerk is in place, so nothing insecure ships.
+ * If the user is signed in but has no DB row yet (the Clerk webhook hasn't
+ * fired — always the case in local dev), we provision them lazily from their
+ * Clerk profile so the first request just works.
  */
 export async function requireUserId(): Promise<string> {
-  if (process.env.NODE_ENV === 'production') {
-    throw new UnauthorizedError('Auth is not configured yet (Phase 5).');
+  const { userId: clerkId } = await auth();
+  if (!clerkId) {
+    throw new UnauthorizedError();
   }
 
-  const devClerkId = process.env.DEV_USER_CLERK_ID ?? 'seed_demo_user';
-  const user = await prisma.user.findUnique({ where: { clerkId: devClerkId } });
-  if (!user) {
-    throw new UnauthorizedError(
-      `Dev user "${devClerkId}" not found. Run \`pnpm --filter @audio-to-text/db db:seed\`.`,
-    );
+  const existing = await prisma.user.findUnique({ where: { clerkId } });
+  if (existing) {
+    return existing.id;
   }
+
+  const clerkUser = await currentUser();
+  const email =
+    clerkUser?.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)?.emailAddress ??
+    clerkUser?.emailAddresses[0]?.emailAddress;
+
+  if (!email) {
+    throw new UnauthorizedError('Clerk account has no email address.');
+  }
+
+  const name = [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(' ') || null;
+  const user = await upsertUserFromClerk({ clerkId, email, name });
   return user.id;
 }
