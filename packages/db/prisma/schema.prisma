@@ -1,0 +1,19 @@
+// Prisma schema — MINIMAL skeleton for Phase 2.
+// The full data model (User, Subscription, Transcription, UsageLog)
+// is designed and implemented in Phase 3.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Placeholder model so `prisma generate` succeeds before Phase 3.
+// Will be replaced by the real schema in Phase 3.
+model HealthCheck {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+}
