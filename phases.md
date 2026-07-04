@@ -121,7 +121,7 @@
 
 ---
 
-## المرحلة 7 — Frontend: لوحة التحكم (Dashboard) 🟠
+## المرحلة 7 — Frontend: لوحة التحكم (Dashboard) 🟠 ✅ (مُنجزة)
 
 - [ ] صفحة رفع الملفات (Drag & Drop) مع شريط تقدّم.
 - [ ] عرض حالة المعالجة لحظيًا (Processing/Done/Failed).

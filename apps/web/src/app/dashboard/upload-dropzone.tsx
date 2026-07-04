@@ -1,0 +1,94 @@
+'use client';
+
+import { useCallback, useRef, useState } from 'react';
+import { AUDIO_CONSTRAINTS, type SupportedAudioFormat } from '@audio-to-text/shared/types';
+import { formatBytes } from '@/lib/format';
+
+interface UploadDropzoneProps {
+  onUpload: (file: File) => Promise<void>;
+  disabled: boolean;
+}
+
+function validateClientSide(file: File): string | null {
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+  const supported = AUDIO_CONSTRAINTS.SUPPORTED_FORMATS as readonly string[];
+  if (!supported.includes(ext)) {
+    return `Unsupported format ".${ext}". Supported: ${AUDIO_CONSTRAINTS.SUPPORTED_FORMATS.join(', ')}.`;
+  }
+  if (file.size > AUDIO_CONSTRAINTS.MAX_FILE_SIZE_BYTES) {
+    return `File too large (${formatBytes(file.size)}). Max ${formatBytes(AUDIO_CONSTRAINTS.MAX_FILE_SIZE_BYTES)}.`;
+  }
+  return null;
+}
+
+export function UploadDropzone({ onUpload, disabled }: UploadDropzoneProps) {
+  const [dragActive, setDragActive] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const processFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file) return;
+      const validationError = validateClientSide(file);
+      if (validationError) {
+        setLocalError(validationError);
+        return;
+      }
+      setLocalError(null);
+      await onUpload(file);
+    },
+    [onUpload],
+  );
+
+  return (
+    <div>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => !disabled && inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (!disabled && (e.key === 'Enter' || e.key === ' ')) inputRef.current?.click();
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!disabled) setDragActive(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setDragActive(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragActive(false);
+          if (!disabled) void processFile(e.dataTransfer.files[0]);
+        }}
+        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-10 text-center transition-colors ${
+          disabled
+            ? 'cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400'
+            : dragActive
+              ? 'border-black bg-gray-50'
+              : 'border-gray-300 hover:border-gray-400'
+        }`}
+      >
+        <p className="font-medium">
+          {disabled ? 'Transcribing…' : 'Drop an audio file here, or click to browse'}
+        </p>
+        <p className="text-sm text-gray-500">
+          {AUDIO_CONSTRAINTS.SUPPORTED_FORMATS.join(', ')} · max{' '}
+          {formatBytes(AUDIO_CONSTRAINTS.MAX_FILE_SIZE_BYTES)}
+        </p>
+        <input
+          ref={inputRef}
+          type="file"
+          accept={AUDIO_CONSTRAINTS.SUPPORTED_FORMATS.map(
+            (f: SupportedAudioFormat) => `.${f}`,
+          ).join(',')}
+          className="hidden"
+          disabled={disabled}
+          onChange={(e) => void processFile(e.target.files?.[0])}
+        />
+      </div>
+      {localError && <p className="mt-2 text-sm text-red-600">{localError}</p>}
+    </div>
+  );
+}
