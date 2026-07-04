@@ -1,6 +1,11 @@
-// Prisma schema — MINIMAL skeleton for Phase 2.
-// The full data model (User, Subscription, Transcription, UsageLog)
-// is designed and implemented in Phase 3.
+// ─────────────────────────────────────────────────────────────
+//  Audio-to-Text — data model (Phase 3)
+//
+//  Enum VALUES are intentionally lowercase so they match the
+//  framework-agnostic constants in packages/shared/src/types.ts
+//  exactly (Prisma generates `type X = 'value'` from the member
+//  name). This keeps one source of truth across DB, web, worker.
+// ─────────────────────────────────────────────────────────────
 
 generator client {
   provider = "prisma-client-js"
@@ -9,11 +14,122 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // NOTE (prod): on Vercel, switch DATABASE_URL to Supabase's pooled
+  // connection (port 6543, ?pgbouncer=true) and re-add
+  //   directUrl = env("DIRECT_URL")
+  // pointing at the direct connection (port 5432) so migrations work.
 }
 
-// Placeholder model so `prisma generate` succeeds before Phase 3.
-// Will be replaced by the real schema in Phase 3.
-model HealthCheck {
+// ── Enums ──────────────────────────────────────────────────────
+
+enum TranscriptionStatus {
+  pending
+  processing
+  done
+  failed
+}
+
+enum SubscriptionPlan {
+  free
+  pro
+}
+
+enum SubscriptionStatus {
+  active
+  canceled
+  past_due
+}
+
+// ── Models ─────────────────────────────────────────────────────
+
+/// An authenticated user. Mirrors a Clerk user (linked via clerkId);
+/// Clerk remains the source of truth for auth, this row holds app data.
+model User {
   id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  name      String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscription   Subscription?
+  transcriptions Transcription[]
+  usageLogs      UsageLog[]
+
+  @@index([createdAt])
+}
+
+/// One row per user. Created (defaulting to `free`) when the user signs up.
+/// Stripe fields are nullable because payments are deferred (Phase 9).
+model Subscription {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  plan   SubscriptionPlan   @default(free)
+  status SubscriptionStatus @default(active)
+
+  // Billing / quota window. For free users this still drives the monthly
+  // minute-quota reset; for pro users it mirrors the Stripe period.
+  currentPeriodStart DateTime @default(now())
+  currentPeriodEnd   DateTime
+
+  // Stripe linkage — populated in Phase 9.
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String? @unique
+  stripePriceId        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stripeCustomerId])
+}
+
+/// A single audio→text job. Drives the queue: created as `pending`,
+/// the worker moves it to `processing` then `done`/`failed`.
+model Transcription {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status TranscriptionStatus @default(pending)
+
+  fileName        String
+  audioUrl        String? // storage URL; null until the upload completes
+  fileSizeBytes   Int
+  durationSeconds Int? // audio length; null until probed/transcribed
+  language        String? // detected or requested language code
+
+  text         String? @db.Text // result; null until done
+  errorMessage String? @db.Text // populated only on failure
+
+  // Estimated OpenAI cost of this transcription, filled in once done.
+  costUsd Decimal? @db.Decimal(10, 4)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  usageLog UsageLog?
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+/// Immutable audit record of consumed audio time, used to enforce the
+/// monthly quota and (later) meter Stripe usage. Source of truth for usage;
+/// aggregate rows within a subscription period to compute consumption.
+model UsageLog {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transcriptionId String        @unique
+  transcription   Transcription @relation(fields: [transcriptionId], references: [id], onDelete: Cascade)
+
+  seconds Int // audio seconds billed for this transcription
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
