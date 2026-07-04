@@ -90,7 +90,7 @@
 
 ---
 
-## المرحلة 4 — Backend API الأساسي 🔴
+## المرحلة 4 — Backend API الأساسي 🔴 ✅ (مُنجزة — مُختبرة end-to-end مع Whisper الحقيقي)
 
 - [ ] Endpoint: `POST /api/transcriptions` — استقبال ملف صوتي (أو رابط Signed Upload)، التحقق من الحجم/الامتداد/مدة الصوت.
 - [ ] Endpoint: `GET /api/transcriptions/:id` — حالة ونتيجة التحويل.

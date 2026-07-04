@@ -20,6 +20,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@audio-to-text/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@audio-to-text/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -51,6 +54,9 @@ importers:
       autoprefixer:
         specifier: ^10.4.20
         version: 10.5.2(postcss@8.5.16)
+      dotenv-cli:
+        specifier: ^7.4.2
+        version: 7.4.4
       eslint:
         specifier: ^8.57.0
         version: 8.57.1
@@ -97,6 +103,25 @@ importers:
       tsx:
         specifier: ^4.16.0
         version: 4.23.0
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
+
+  packages/core:
+    dependencies:
+      '@audio-to-text/db':
+        specifier: workspace:*
+        version: link:../db
+      '@audio-to-text/shared':
+        specifier: workspace:*
+        version: link:../shared
+      openai:
+        specifier: ^4.56.0
+        version: 4.104.0(zod@3.25.76)
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.43
       typescript:
         specifier: ^5.5.4
         version: 5.9.3
