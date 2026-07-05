@@ -33,10 +33,14 @@ export const AUDIO_CONSTRAINTS = {
 
 export type SupportedAudioFormat = (typeof AUDIO_CONSTRAINTS.SUPPORTED_FORMATS)[number];
 
-/** Payload placed on the BullMQ queue for the worker to process. */
+export const TRANSCRIPTION_QUEUE_NAME = 'transcriptions';
+
+/**
+ * Payload placed on the BullMQ queue for the worker to process.
+ * Deliberately tiny — the worker looks up everything it needs (file name,
+ * audio bytes) from the Transcription row by id, so the queue never carries
+ * large payloads (Redis/Upstash is not meant to store megabytes of audio).
+ */
 export interface TranscriptionJobData {
   transcriptionId: string;
-  userId: string;
-  audioUrl: string;
-  fileName: string;
 }

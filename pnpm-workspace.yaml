@@ -1,6 +1,12 @@
 packages:
   - "apps/*"
   - "packages/*"
+overrides:
+  # bullmq pins an exact ioredis version internally; keep our own direct
+  # dependency pinned to the same version so pnpm never resolves two
+  # incompatible copies (which breaks TypeScript's structural typing for
+  # Redis/Queue/Connection types across packages).
+  ioredis: 5.10.1
 allowBuilds:
   '@clerk/shared': true
   '@prisma/client': true

@@ -13,12 +13,39 @@ interface DashboardClientProps {
 }
 
 const PENDING_PREFIX = 'pending-';
+const POLL_INTERVAL_MS = 2000;
+const POLL_TIMEOUT_MS = 3 * 60 * 1000; // stop polling after 3 minutes either way
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export function DashboardClient({ initialQuota, initialTranscriptions }: DashboardClientProps) {
   const [quota, setQuota] = useState(initialQuota);
   const [items, setItems] = useState(initialTranscriptions);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // The worker processes jobs asynchronously, so after the upload responds
+  // with a `pending` record we poll its status until it reaches a final state.
+  async function pollTranscription(id: string) {
+    const deadline = Date.now() + POLL_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      await sleep(POLL_INTERVAL_MS);
+
+      const res = await fetch(`/api/transcriptions/${id}`);
+      if (!res.ok) return;
+
+      const data = (await res.json()) as TranscriptionDTO;
+      setItems((prev) => prev.map((t) => (t.id === id ? data : t)));
+
+      if (data.status === 'done' || data.status === 'failed') {
+        const usageRes = await fetch('/api/usage');
+        if (usageRes.ok) setQuota(await usageRes.json());
+        return;
+      }
+    }
+  }
 
   async function handleUpload(file: File) {
     setUploading(true);
@@ -27,7 +54,7 @@ export function DashboardClient({ initialQuota, initialTranscriptions }: Dashboa
     const tempId = `${PENDING_PREFIX}${Date.now()}`;
     const optimisticItem: TranscriptionDTO = {
       id: tempId,
-      status: 'processing',
+      status: 'pending',
       fileName: file.name,
       fileSizeBytes: file.size,
       durationSeconds: null,
@@ -51,14 +78,14 @@ export function DashboardClient({ initialQuota, initialTranscriptions }: Dashboa
         throw new Error(data?.error?.message ?? 'Upload failed.');
       }
 
-      setItems((prev) => [data as TranscriptionDTO, ...prev.filter((t) => t.id !== tempId)]);
+      const record = data as TranscriptionDTO;
+      setItems((prev) => [record, ...prev.filter((t) => t.id !== tempId)]);
+      setUploading(false);
 
-      const usageRes = await fetch('/api/usage');
-      if (usageRes.ok) setQuota(await usageRes.json());
+      void pollTranscription(record.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed.');
       setItems((prev) => prev.filter((t) => t.id !== tempId));
-    } finally {
       setUploading(false);
     }
   }

@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { z } from 'zod';
 import { openaiEnvSchema, databaseEnvSchema, appEnvSchema, parseEnv } from '@audio-to-text/shared';
 

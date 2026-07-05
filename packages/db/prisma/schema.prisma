@@ -95,7 +95,11 @@ model Transcription {
   status TranscriptionStatus @default(pending)
 
   fileName        String
-  audioUrl        String? // storage URL; null until the upload completes
+  audioUrl        String? // storage URL; null until the upload completes (Phase 10)
+  // Temporary bridge until Phase 10 adds real object storage: raw audio bytes,
+  // held only between upload and worker processing, then cleared (set null)
+  // once the job finishes (success or failure) so we never retain audio.
+  audioData       Bytes?
   fileSizeBytes   Int
   durationSeconds Int? // audio length; null until probed/transcribed
   language        String? // detected or requested language code
