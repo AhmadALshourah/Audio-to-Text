@@ -1,7 +1,15 @@
 import { describe, it, expect, afterAll } from 'vitest';
+import { existsSync } from 'node:fs';
 import { prisma } from '@audio-to-text/db';
-import { registerUser, authenticateUser, getUserByToken, destroySession } from './auth-service.js';
+import {
+  registerUser,
+  authenticateUser,
+  getUserByToken,
+  destroySession,
+  deleteAccount,
+} from './auth-service.js';
 import { ValidationError, UnauthorizedError } from './errors.js';
+import { saveAudio } from './storage.js';
 
 const testEmail = `auth-test-${Date.now()}@example.com`;
 
@@ -72,5 +80,26 @@ describe('auth-service', () => {
     await destroySession(token);
 
     expect(await getUserByToken(token)).toBeNull();
+  });
+
+  it('deleteAccount removes the user, their sessions, and any in-flight audio', async () => {
+    const { user, token } = await registerUser(
+      `delete-me-${Date.now()}@example.com`,
+      'a-strong-password',
+    );
+
+    const transcription = await prisma.transcription.create({
+      data: { userId: user.id, status: 'pending', fileName: 'a.wav', fileSizeBytes: 44 },
+    });
+    const audioPath = await saveAudio(transcription.id, 'wav', Buffer.alloc(44));
+    await prisma.transcription.update({ where: { id: transcription.id }, data: { audioPath } });
+
+    expect(existsSync(audioPath)).toBe(true);
+
+    await deleteAccount(user.id);
+
+    expect(existsSync(audioPath)).toBe(false);
+    expect(await getUserByToken(token)).toBeNull();
+    expect(await prisma.user.findUnique({ where: { id: user.id } })).toBeNull();
   });
 });

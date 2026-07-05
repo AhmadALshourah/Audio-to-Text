@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { serializeTranscription } from '@/lib/serializers';
 import { DashboardClient } from './dashboard-client';
 import { SignOutButton } from './sign-out-button';
+import { DeleteAccountButton } from './delete-account-button';
 import { redirect } from 'next/navigation';
 
 export const runtime = 'nodejs';
@@ -30,6 +31,10 @@ export default async function DashboardPage() {
         initialQuota={quota}
         initialTranscriptions={transcriptions.map(serializeTranscription)}
       />
+
+      <div className="mt-6 flex justify-center border-t border-ink/10 pt-4">
+        <DeleteAccountButton />
+      </div>
     </main>
   );
 }

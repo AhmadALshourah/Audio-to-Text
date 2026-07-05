@@ -260,6 +260,12 @@ function Footer() {
           <a href="#pricing" className="hover:text-ink/60">
             Pricing
           </a>
+          <Link href="/privacy" className="hover:text-ink/60">
+            Privacy
+          </Link>
+          <Link href="/terms" className="hover:text-ink/60">
+            Terms
+          </Link>
         </div>
       </div>
     </footer>

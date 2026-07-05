@@ -1,6 +1,7 @@
 import { prisma, type User } from '@audio-to-text/db';
 import { hashPassword, verifyPassword, generateToken, sha256 } from '@audio-to-text/shared/crypto';
 import { ValidationError, UnauthorizedError } from './errors.js';
+import { deleteAudio } from './storage.js';
 
 /** How long a session stays valid. */
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -111,6 +112,22 @@ export async function getUserByToken(token: string | undefined): Promise<User | 
 export async function destroySession(token: string | undefined): Promise<void> {
   if (!token) return;
   await prisma.session.deleteMany({ where: { tokenHash: sha256(token) } });
+}
+
+/**
+ * Permanently delete a user and everything derived from their data (sessions,
+ * subscription, transcriptions, usage logs — all cascade via the schema).
+ * Any audio still on disk for an in-flight transcription is deleted first, so
+ * nothing outlives the account record.
+ */
+export async function deleteAccount(userId: string): Promise<void> {
+  const pendingAudio = await prisma.transcription.findMany({
+    where: { userId, audioPath: { not: null } },
+    select: { audioPath: true },
+  });
+  await Promise.all(pendingAudio.map((t) => deleteAudio(t.audioPath)));
+
+  await prisma.user.delete({ where: { id: userId } });
 }
 
 async function openSession(userId: string): Promise<{ token: string; expiresAt: Date }> {

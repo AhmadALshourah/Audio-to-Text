@@ -7,7 +7,7 @@ import { SESSION_COOKIE } from '@/lib/session-cookie';
  * redirects to /sign-in if not. The real validation (token → user, expiry)
  * happens server-side in requireUserId() on the protected page/route.
  */
-const PUBLIC_PATHS = ['/', '/sign-in', '/sign-up'];
+const PUBLIC_PATHS = ['/', '/sign-in', '/sign-up', '/privacy', '/terms'];
 
 function isPublic(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true;

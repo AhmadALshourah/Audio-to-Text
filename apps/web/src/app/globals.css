@@ -12,3 +12,28 @@ h2,
 h3 {
   font-family: var(--font-display), sans-serif;
 }
+
+.prose-legal h2 {
+  margin-top: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1917;
+}
+
+.prose-legal p,
+.prose-legal li {
+  line-height: 1.7;
+}
+
+.prose-legal ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.prose-legal a {
+  color: #a85a2c;
+  text-decoration: underline;
+}

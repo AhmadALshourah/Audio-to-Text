@@ -90,6 +90,23 @@ export function AuthForm({ mode }: AuthFormProps) {
           {isSignUp && <span className="text-xs text-ink/40">At least 8 characters.</span>}
         </label>
 
+        {isSignUp && (
+          <label className="flex items-start gap-2 text-xs text-ink/60">
+            <input type="checkbox" required className="mt-0.5 h-3.5 w-3.5 accent-accent" />
+            <span>
+              I agree to the{' '}
+              <Link href="/terms" className="font-medium underline" target="_blank">
+                Terms of Service
+              </Link>{' '}
+              and{' '}
+              <Link href="/privacy" className="font-medium underline" target="_blank">
+                Privacy Policy
+              </Link>
+              , and confirm I have the right to upload any audio I share.
+            </span>
+          </label>
+        )}
+
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button
