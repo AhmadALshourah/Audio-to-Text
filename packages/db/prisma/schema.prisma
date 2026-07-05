@@ -60,7 +60,10 @@ model User {
 }
 
 /// One row per user. Created (defaulting to `free`) when the user signs up.
-/// Stripe fields are nullable because payments are deferred (Phase 9).
+/// No external payment gateway is integrated — the product is free-only by
+/// deliberate decision (real card processing requires a PCI-compliant
+/// gateway, which is out of scope). `plan`/`status` stay for the quota
+/// system and to leave room for a future manually-granted `pro` plan.
 model Subscription {
   id     String @id @default(cuid())
   userId String @unique
@@ -69,20 +72,12 @@ model Subscription {
   plan   SubscriptionPlan   @default(free)
   status SubscriptionStatus @default(active)
 
-  // Billing / quota window. For free users this still drives the monthly
-  // minute-quota reset; for pro users it mirrors the Stripe period.
+  // Billing / quota window — drives the monthly minute-quota reset.
   currentPeriodStart DateTime @default(now())
   currentPeriodEnd   DateTime
 
-  // Stripe linkage — populated in Phase 9.
-  stripeCustomerId     String? @unique
-  stripeSubscriptionId String? @unique
-  stripePriceId        String?
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([stripeCustomerId])
 }
 
 /// A single audio→text job. Drives the queue: created as `pending`,
@@ -121,8 +116,8 @@ model Transcription {
 }
 
 /// Immutable audit record of consumed audio time, used to enforce the
-/// monthly quota and (later) meter Stripe usage. Source of truth for usage;
-/// aggregate rows within a subscription period to compute consumption.
+/// monthly quota. Source of truth for usage; aggregate rows within a
+/// subscription period to compute consumption.
 model UsageLog {
   id     String @id @default(cuid())
   userId String

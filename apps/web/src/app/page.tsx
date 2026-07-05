@@ -170,54 +170,29 @@ function Features() {
 function Pricing() {
   return (
     <section id="pricing" className="border-y border-gray-100 bg-gray-50">
-      <div className="mx-auto max-w-4xl px-6 py-16">
+      <div className="mx-auto max-w-md px-6 py-16">
         <h2 className="text-center text-2xl font-semibold tracking-tight">
           Simple, honest pricing
         </h2>
-        <div className="mt-10 grid gap-6 sm:grid-cols-2">
-          {/* Free */}
-          <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-6">
-            <div>
-              <h3 className="font-semibold">Free</h3>
-              <p className="mt-1 text-3xl font-bold">
-                $0<span className="text-sm font-normal text-gray-500"> / month</span>
-              </p>
-            </div>
-            <ul className="flex flex-col gap-2 text-sm text-gray-600">
-              <li>✓ {PLAN_MONTHLY_MINUTES.free} minutes of audio per month</li>
-              <li>✓ All supported formats, files up to 25 MB</li>
-              <li>✓ Full transcription history</li>
-              <li>✓ Copy &amp; .txt export</li>
-            </ul>
-            <div className="mt-auto">
-              <PrimaryCta>Get started free</PrimaryCta>
-            </div>
-          </div>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          No tiers, no credit card, no surprises.
+        </p>
 
-          {/* Pro — Stripe lands in Phase 9 */}
-          <div className="flex flex-col gap-4 rounded-xl border border-gray-300 bg-white p-6">
-            <div>
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold">Pro</h3>
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                  Coming soon
-                </span>
-              </div>
-              <p className="mt-1 text-3xl font-bold">
-                $9<span className="text-sm font-normal text-gray-500"> / month</span>
-              </p>
-            </div>
-            <ul className="flex flex-col gap-2 text-sm text-gray-600">
-              <li>✓ {PLAN_MONTHLY_MINUTES.pro.toLocaleString()} minutes of audio per month</li>
-              <li>✓ Everything in Free</li>
-              <li>✓ Priority processing</li>
-              <li>✓ SRT / VTT subtitle export (planned)</li>
-            </ul>
-            <div className="mt-auto">
-              <span className="inline-block cursor-not-allowed rounded-md border border-gray-200 px-6 py-3 text-sm font-medium text-gray-400">
-                Coming soon
-              </span>
-            </div>
+        <div className="mt-10 flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-6">
+          <div>
+            <h3 className="font-semibold">Free</h3>
+            <p className="mt-1 text-3xl font-bold">
+              $0<span className="text-sm font-normal text-gray-500"> / month</span>
+            </p>
+          </div>
+          <ul className="flex flex-col gap-2 text-sm text-gray-600">
+            <li>✓ {PLAN_MONTHLY_MINUTES.free} minutes of audio per month</li>
+            <li>✓ All supported formats, files up to 25 MB</li>
+            <li>✓ Full transcription history</li>
+            <li>✓ Copy &amp; .txt export</li>
+          </ul>
+          <div className="mt-auto">
+            <PrimaryCta>Get started free</PrimaryCta>
           </div>
         </div>
       </div>
