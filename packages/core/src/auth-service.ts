@@ -5,6 +5,10 @@ import { ValidationError, UnauthorizedError } from './errors.js';
 /** How long a session stays valid. */
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
+/** Precomputed hash of a random value, verified against when a login email is
+ * unknown so the work done is identical to a real (failed) password check. */
+const DUMMY_PASSWORD_HASH = hashPassword(generateToken());
+
 export interface AuthResult {
   user: User;
   /** Raw session token to set in the client cookie (only returned here, never stored). */
@@ -69,7 +73,12 @@ export async function authenticateUser(email: string, password: string): Promise
   const normalizedEmail = email.trim().toLowerCase();
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
-  if (!user || !verifyPassword(password, user.passwordHash)) {
+  // Always run a scrypt verification — even when the user doesn't exist we
+  // verify against a dummy hash — so response timing doesn't reveal whether an
+  // email is registered (mitigates user enumeration).
+  const ok = verifyPassword(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
+
+  if (!user || !ok) {
     throw new UnauthorizedError('Invalid email or password.');
   }
 

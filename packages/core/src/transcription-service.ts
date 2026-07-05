@@ -1,7 +1,7 @@
 import { prisma, type Transcription } from '@audio-to-text/db';
 import { MAX_TRANSCRIPTION_ATTEMPTS } from '@audio-to-text/shared';
 import { NotFoundError } from './errors.js';
-import { validateAudioUpload } from './validation.js';
+import { validateAudioUpload, assertAudioContent } from './validation.js';
 import { assertQuotaAvailable } from './quota.js';
 import { transcribeAudio } from './whisper.js';
 import { saveAudio, readAudio, deleteAudio } from './storage.js';
@@ -22,6 +22,7 @@ export async function createTranscription(
   audioData: Buffer,
 ): Promise<Transcription> {
   const { extension } = validateAudioUpload(input);
+  assertAudioContent(audioData);
   await assertQuotaAvailable(userId);
 
   const record = await prisma.transcription.create({

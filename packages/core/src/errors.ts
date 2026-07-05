@@ -51,3 +51,14 @@ export class TranscriptionError extends AppError {
     super(message, 502, 'transcription_failed');
   }
 }
+
+/** Too many requests in the current window. → 429 */
+export class RateLimitError extends AppError {
+  /** Seconds the client should wait before retrying (for a Retry-After header). */
+  readonly retryAfterSeconds: number;
+
+  constructor(retryAfterSeconds: number, message = 'Too many requests. Please slow down.') {
+    super(message, 429, 'rate_limited');
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { AppError } from '@audio-to-text/core';
+import { AppError, RateLimitError } from '@audio-to-text/core';
 
 /**
  * Convert a thrown error into a consistent JSON error response.
@@ -7,9 +7,11 @@ import { AppError } from '@audio-to-text/core';
  */
 export function toErrorResponse(err: unknown): NextResponse {
   if (err instanceof AppError) {
+    const headers =
+      err instanceof RateLimitError ? { 'Retry-After': String(err.retryAfterSeconds) } : undefined;
     return NextResponse.json(
       { error: { code: err.code, message: err.message } },
-      { status: err.status },
+      { status: err.status, headers },
     );
   }
 
