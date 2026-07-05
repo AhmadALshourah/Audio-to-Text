@@ -213,12 +213,22 @@
 
 ---
 
-## المرحلة 14 — CI/CD والنشر 🟡
+## المرحلة 14 — CI/CD والنشر 🟡 ✅ (CI مُنجز ومُختبر — النشر يحتاج قرارك)
 
-- [ ] GitHub Actions: Lint + Type-check + Tests على كل Pull Request.
-- [ ] نشر تلقائي لـ `apps/web` على Vercel عند الدمج بـ `main`.
-- [ ] نشر تلقائي لـ `apps/worker` على Railway/Render/Fly.io.
-- [ ] بيئات منفصلة: Development / Staging / Production مع متغيرات بيئة مستقلة.
+- [x] **GitHub Actions** (`.github/workflows/ci.yml`): على كل push/PR لـ `main` — تثبيت (pnpm + cache) → توليد Prisma Client → **lint** → **typecheck** → **test** (57 اختبار) → **build**. مُختبر محليًا بمحاكاة كاملة (بيئة placeholder من `.env.example`، بدون أي أسرار حقيقية) — كل الخطوات نجحت.
+- [x] Badge حالة الـ CI بـ `README.md`.
+
+### ⚠️ تصحيح معماري مهم — Vercel/Railway لا يصلحان لهذا الستاك
+
+الخطة الأصلية افترضت Vercel (serverless) + Railway (worker منفصل)، وهذا **لم يعد يعمل** بعد التحوّل للستاك المستقل:
+- نظام ملفات Vercel **مؤقت وللقراءة فقط في الإنتاج** — ملف SQLite ما رح يصمد بين الطلبات، وأي كتابة تضيع.
+- الـ web والـ worker يشتركان **بنفس القرص** (نفس `dev.db` ونفس `data/uploads/`) — مستحيل بين مزوّدين منفصلين (serverless + سيرفر آخر).
+
+**البديل الصحيح: سيرفر دائم واحد (VPS)** — مثل DigitalOcean Droplet، Hetzner، أو Fly.io (بـ persistent volume) — يشغّل `apps/web` (عبر `next start` أو PM2) و`apps/worker` معًا، على نفس القرص، بعملية واحدة أو اثنتين (process manager مثل `pm2` أو `systemd`).
+
+- [ ] اختيار مزوّد VPS (يحتاج قرارك وحساب — خارج نطاق التنفيذ الحالي).
+- [ ] كتابة سكريبت/Dockerfile نشر يشغّل web+worker على نفس القرص (لاحقًا عند اختيار المزوّد).
+- [ ] بيئات Development/Production منفصلة (لاحقًا مع النشر الفعلي).
 
 ---
 
