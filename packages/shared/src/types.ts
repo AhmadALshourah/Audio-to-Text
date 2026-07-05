@@ -19,6 +19,11 @@ export const SUBSCRIPTION_PLAN = {
 
 export type SubscriptionPlan = (typeof SUBSCRIPTION_PLAN)[keyof typeof SUBSCRIPTION_PLAN];
 
+/** Narrow a raw DB string (SQLite stores plans as text) to a SubscriptionPlan. */
+export function toSubscriptionPlan(value: string | null | undefined): SubscriptionPlan {
+  return value === SUBSCRIPTION_PLAN.PRO ? SUBSCRIPTION_PLAN.PRO : SUBSCRIPTION_PLAN.FREE;
+}
+
 /** Monthly transcription minute allowance per plan. */
 export const PLAN_MONTHLY_MINUTES: Record<SubscriptionPlan, number> = {
   [SUBSCRIPTION_PLAN.FREE]: 30,
@@ -33,14 +38,5 @@ export const AUDIO_CONSTRAINTS = {
 
 export type SupportedAudioFormat = (typeof AUDIO_CONSTRAINTS.SUPPORTED_FORMATS)[number];
 
-export const TRANSCRIPTION_QUEUE_NAME = 'transcriptions';
-
-/**
- * Payload placed on the BullMQ queue for the worker to process.
- * Deliberately tiny — the worker looks up everything it needs (file name,
- * audio bytes) from the Transcription row by id, so the queue never carries
- * large payloads (Redis/Upstash is not meant to store megabytes of audio).
- */
-export interface TranscriptionJobData {
-  transcriptionId: string;
-}
+/** Max times the polling worker retries a failed transcription before giving up. */
+export const MAX_TRANSCRIPTION_ATTEMPTS = 2;

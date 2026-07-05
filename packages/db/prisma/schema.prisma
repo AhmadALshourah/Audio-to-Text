@@ -1,10 +1,10 @@
 // ─────────────────────────────────────────────────────────────
-//  Audio-to-Text — data model (Phase 3)
+//  Audio-to-Text — data model
 //
-//  Enum VALUES are intentionally lowercase so they match the
-//  framework-agnostic constants in packages/shared/src/types.ts
-//  exactly (Prisma generates `type X = 'value'` from the member
-//  name). This keeps one source of truth across DB, web, worker.
+//  Self-contained stack: SQLite (single file, no external DB).
+//  SQLite has no native enums, so status/plan are String columns whose
+//  allowed values live in packages/shared/src/types.ts (the single source
+//  of truth, shared across db/web/worker).
 // ─────────────────────────────────────────────────────────────
 
 generator client {
@@ -12,65 +12,53 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  // NOTE (prod): on Vercel, switch DATABASE_URL to Supabase's pooled
-  // connection (port 6543, ?pgbouncer=true) and re-add
-  //   directUrl = env("DIRECT_URL")
-  // pointing at the direct connection (port 5432) so migrations work.
-}
-
-// ── Enums ──────────────────────────────────────────────────────
-
-enum TranscriptionStatus {
-  pending
-  processing
-  done
-  failed
-}
-
-enum SubscriptionPlan {
-  free
-  pro
-}
-
-enum SubscriptionStatus {
-  active
-  canceled
-  past_due
+  provider = "sqlite"
+  url      = env("DATABASE_URL") // e.g. file:./dev.db
 }
 
 // ── Models ─────────────────────────────────────────────────────
 
-/// An authenticated user. Mirrors a Clerk user (linked via clerkId);
-/// Clerk remains the source of truth for auth, this row holds app data.
+/// An authenticated user. Auth is self-built (no external provider):
+/// `passwordHash` is a scrypt hash, sessions live in the Session table.
 model User {
-  id        String   @id @default(cuid())
-  clerkId   String   @unique
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   subscription   Subscription?
   transcriptions Transcription[]
   usageLogs      UsageLog[]
+  sessions       Session[]
 
   @@index([createdAt])
 }
 
+/// A logged-in session. The cookie holds a random token; we store only its
+/// SHA-256 hash here, so a database leak never exposes live session tokens.
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
 /// One row per user. Created (defaulting to `free`) when the user signs up.
-/// No external payment gateway is integrated — the product is free-only by
-/// deliberate decision (real card processing requires a PCI-compliant
-/// gateway, which is out of scope). `plan`/`status` stay for the quota
-/// system and to leave room for a future manually-granted `pro` plan.
+/// No payment gateway — free-only by design. `plan`/`status` are String
+/// (allowed values in packages/shared) and drive the quota system.
 model Subscription {
   id     String @id @default(cuid())
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  plan   SubscriptionPlan   @default(free)
-  status SubscriptionStatus @default(active)
+  plan   String @default("free") // SubscriptionPlan: free | pro
+  status String @default("active") // SubscriptionStatus: active | canceled | past_due
 
   // Billing / quota window — drives the monthly minute-quota reset.
   currentPeriodStart DateTime @default(now())
@@ -80,30 +68,31 @@ model Subscription {
   updatedAt DateTime @updatedAt
 }
 
-/// A single audio→text job. Drives the queue: created as `pending`,
-/// the worker moves it to `processing` then `done`/`failed`.
+/// A single audio→text job. Drives the queue: created as `pending`, the
+/// worker (which polls this table) claims it → `processing` → `done`/`failed`.
 model Transcription {
   id     String @id @default(cuid())
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  status TranscriptionStatus @default(pending)
+  status String @default("pending") // TranscriptionStatus: pending | processing | done | failed
 
-  fileName        String
-  audioUrl        String? // storage URL; null until the upload completes (Phase 10)
-  // Temporary bridge until Phase 10 adds real object storage: raw audio bytes,
-  // held only between upload and worker processing, then cleared (set null)
-  // once the job finishes (success or failure) so we never retain audio.
-  audioData       Bytes?
+  fileName String
+  // Path on the local uploads disk, set at creation; cleared (and the file
+  // deleted) once the job finishes — we keep only the text long-term.
+  audioPath       String?
   fileSizeBytes   Int
-  durationSeconds Int? // audio length; null until probed/transcribed
-  language        String? // detected or requested language code
+  durationSeconds Int? // audio length; null until transcribed
+  language        String? // detected language code
 
-  text         String? @db.Text // result; null until done
-  errorMessage String? @db.Text // populated only on failure
+  text         String? // result; null until done
+  errorMessage String? // populated only on failure
 
   // Estimated OpenAI cost of this transcription, filled in once done.
-  costUsd Decimal? @db.Decimal(10, 4)
+  costUsd Float?
+
+  // Retry bookkeeping for the polling worker.
+  attempts Int @default(0)
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

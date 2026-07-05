@@ -20,4 +20,11 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
+// SQLite is accessed by two processes (web + worker). WAL mode lets readers and
+// a writer work concurrently, and a busy_timeout makes brief lock contention
+// wait-and-retry instead of throwing "database is locked". Fire-and-forget.
+// Both PRAGMAs return a row (the resulting value), so they must use queryRaw.
+void prisma.$queryRawUnsafe('PRAGMA journal_mode = WAL;').catch(() => {});
+void prisma.$queryRawUnsafe('PRAGMA busy_timeout = 5000;').catch(() => {});
+
 export * from '@prisma/client';

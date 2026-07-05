@@ -1,30 +1,39 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { SESSION_COOKIE } from '@/lib/session-cookie';
 
 /**
- * Public routes anyone can reach. Everything else (dashboard, /api/transcriptions,
- * /api/usage) requires a signed-in user. The Clerk webhook is public because it
- * is authenticated by its svix signature, not a user session.
+ * Coarse auth gate. Middleware runs on the Edge runtime and can't touch the
+ * database, so it only checks whether a session cookie is *present* and
+ * redirects to /sign-in if not. The real validation (token → user, expiry)
+ * happens server-side in requireUserId() on the protected page/route.
  */
-const isPublicRoute = createRouteMatcher([
-  '/',
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/api/webhooks(.*)',
-  '/sitemap.xml',
-  '/robots.txt',
-]);
+const PUBLIC_PATHS = ['/', '/sign-in', '/sign-up'];
 
-export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
-    await auth.protect();
+function isPublic(pathname: string): boolean {
+  if (PUBLIC_PATHS.includes(pathname)) return true;
+  // Auth API + Next internals + static assets are always reachable.
+  return pathname.startsWith('/api/auth') || pathname.startsWith('/_next');
+}
+
+export function middleware(req: NextRequest): NextResponse {
+  const { pathname } = req.nextUrl;
+  if (isPublic(pathname)) return NextResponse.next();
+
+  const hasSession = Boolean(req.cookies.get(SESSION_COOKIE)?.value);
+
+  // Protected API routes: let them run and return a real 401 via requireUserId.
+  if (pathname.startsWith('/api')) return NextResponse.next();
+
+  if (!hasSession) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/sign-in';
+    url.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(url);
   }
-});
+
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: [
-    // Skip Next internals and static files, unless found in search params.
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpg|jpeg|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes.
-    '/(api|trpc)(.*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|ico|webp)).*)'],
 };

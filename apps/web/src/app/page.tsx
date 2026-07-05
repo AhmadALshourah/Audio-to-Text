@@ -1,35 +1,25 @@
 import Link from 'next/link';
-import { SignedIn, SignedOut } from '@clerk/nextjs';
 import { PLAN_MONTHLY_MINUTES } from '@audio-to-text/shared/types';
+import { getCurrentUser } from '@/lib/auth';
+
+export const runtime = 'nodejs';
 
 /* ─────────────────────────── Shared bits ─────────────────────────── */
 
-function PrimaryCta({ children }: { children: React.ReactNode }) {
+function PrimaryCta({ signedIn, children }: { signedIn: boolean; children: React.ReactNode }) {
   return (
-    <>
-      <SignedOut>
-        <Link
-          href="/sign-up"
-          className="rounded-md bg-black px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800"
-        >
-          {children}
-        </Link>
-      </SignedOut>
-      <SignedIn>
-        <Link
-          href="/dashboard"
-          className="rounded-md bg-black px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800"
-        >
-          Open dashboard
-        </Link>
-      </SignedIn>
-    </>
+    <Link
+      href={signedIn ? '/dashboard' : '/sign-up'}
+      className="rounded-md bg-black px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+    >
+      {signedIn ? 'Open dashboard' : children}
+    </Link>
   );
 }
 
 /* ─────────────────────────── Sections ─────────────────────────── */
 
-function Header() {
+function Header({ signedIn }: { signedIn: boolean }) {
   return (
     <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-5">
       <span className="text-sm font-semibold tracking-tight">Audio→Text</span>
@@ -40,22 +30,21 @@ function Header() {
         <a href="#pricing" className="text-gray-600 hover:text-black">
           Pricing
         </a>
-        <SignedOut>
-          <Link href="/sign-in" className="font-medium hover:underline">
-            Sign in
-          </Link>
-        </SignedOut>
-        <SignedIn>
+        {signedIn ? (
           <Link href="/dashboard" className="font-medium hover:underline">
             Dashboard
           </Link>
-        </SignedIn>
+        ) : (
+          <Link href="/sign-in" className="font-medium hover:underline">
+            Sign in
+          </Link>
+        )}
       </nav>
     </header>
   );
 }
 
-function Hero() {
+function Hero({ signedIn }: { signedIn: boolean }) {
   return (
     <section className="mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 pb-20 pt-16 text-center">
       <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
@@ -67,7 +56,7 @@ function Hero() {
         powered by OpenAI Whisper. No installs, no manual typing, no waiting around.
       </p>
       <div className="flex items-center gap-3">
-        <PrimaryCta>Start transcribing — free</PrimaryCta>
+        <PrimaryCta signedIn={signedIn}>Start transcribing — free</PrimaryCta>
         <a
           href="#how-it-works"
           className="px-4 py-3 text-sm font-medium text-gray-600 hover:text-black"
@@ -167,7 +156,7 @@ function Features() {
   );
 }
 
-function Pricing() {
+function Pricing({ signedIn }: { signedIn: boolean }) {
   return (
     <section id="pricing" className="border-y border-gray-100 bg-gray-50">
       <div className="mx-auto max-w-md px-6 py-16">
@@ -192,7 +181,7 @@ function Pricing() {
             <li>✓ Copy &amp; .txt export</li>
           </ul>
           <div className="mt-auto">
-            <PrimaryCta>Get started free</PrimaryCta>
+            <PrimaryCta signedIn={signedIn}>Get started free</PrimaryCta>
           </div>
         </div>
       </div>
@@ -200,7 +189,7 @@ function Pricing() {
   );
 }
 
-function FinalCta() {
+function FinalCta({ signedIn }: { signedIn: boolean }) {
   return (
     <section className="mx-auto flex max-w-3xl flex-col items-center gap-5 px-6 py-20 text-center">
       <h2 className="text-3xl font-bold tracking-tight">Stop typing what you already said.</h2>
@@ -208,7 +197,7 @@ function FinalCta() {
         Your first {PLAN_MONTHLY_MINUTES.free} minutes are free every month — upload a file and see
         the transcript for yourself.
       </p>
-      <PrimaryCta>Start transcribing — free</PrimaryCta>
+      <PrimaryCta signedIn={signedIn}>Start transcribing — free</PrimaryCta>
     </section>
   );
 }
@@ -233,16 +222,17 @@ function Footer() {
 
 /* ─────────────────────────── Page ─────────────────────────── */
 
-export default function HomePage() {
+export default async function HomePage() {
+  const signedIn = Boolean(await getCurrentUser());
   return (
     <>
-      <Header />
+      <Header signedIn={signedIn} />
       <main>
-        <Hero />
+        <Hero signedIn={signedIn} />
         <HowItWorks />
         <Features />
-        <Pricing />
-        <FinalCta />
+        <Pricing signedIn={signedIn} />
+        <FinalCta signedIn={signedIn} />
       </main>
       <Footer />
     </>

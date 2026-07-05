@@ -13,8 +13,14 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 
-# ── Prisma ──
-packages/db/prisma/migrations/dev.db*
+# ── SQLite database (local, per-machine) ──
+packages/db/prisma/*.db
+packages/db/prisma/*.db-journal
+packages/db/prisma/*.db-wal
+packages/db/prisma/*.db-shm
+
+# ── Local uploaded audio (transient) ──
+data/uploads/
 
 # ── Logs ──
 *.log

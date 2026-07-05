@@ -12,11 +12,7 @@
   "dependencies": {
     "@audio-to-text/core": "workspace:*",
     "@audio-to-text/db": "workspace:*",
-    "@audio-to-text/shared": "workspace:*",
-    "bullmq": "^5.12.0",
-    "ioredis": "5.10.1",
-    "openai": "^4.56.0",
-    "zod": "^3.23.8"
+    "@audio-to-text/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

@@ -1,9 +1,10 @@
 import { prisma, type Transcription } from '@audio-to-text/db';
+import { MAX_TRANSCRIPTION_ATTEMPTS } from '@audio-to-text/shared';
 import { NotFoundError } from './errors.js';
 import { validateAudioUpload } from './validation.js';
 import { assertQuotaAvailable } from './quota.js';
 import { transcribeAudio } from './whisper.js';
-import { enqueueTranscriptionJob } from './queue.js';
+import { saveAudio, readAudio, deleteAudio } from './storage.js';
 
 export interface CreateTranscriptionInput {
   fileName: string;
@@ -11,17 +12,16 @@ export interface CreateTranscriptionInput {
 }
 
 /**
- * Validate the upload, check quota, persist a `pending` record (with the raw
- * audio bytes attached — see the schema note on `audioData`), and enqueue a
- * job for the worker to pick up. Returns immediately; the caller polls
- * {@link getTranscription} for status updates.
+ * Validate the upload, check quota, write the audio to local storage, and
+ * persist a `pending` record pointing at it. Returns immediately; the polling
+ * worker picks the job up. The caller polls {@link getTranscription} for status.
  */
 export async function createTranscription(
   userId: string,
   input: CreateTranscriptionInput,
   audioData: Buffer,
 ): Promise<Transcription> {
-  validateAudioUpload(input);
+  const { extension } = validateAudioUpload(input);
   await assertQuotaAvailable(userId);
 
   const record = await prisma.transcription.create({
@@ -30,69 +30,70 @@ export async function createTranscription(
       status: 'pending',
       fileName: input.fileName,
       fileSizeBytes: input.sizeBytes,
-      audioData,
     },
   });
 
-  await enqueueTranscriptionJob({ transcriptionId: record.id });
-
-  return record;
-}
-
-/**
- * Load the audio bytes stored for a pending job. Called by the worker after
- * dequeuing — keeps the queue payload to a bare id instead of carrying audio.
- */
-export async function fetchTranscriptionAudio(
-  transcriptionId: string,
-): Promise<{ fileName: string; audioData: Buffer }> {
-  const record = await prisma.transcription.findUnique({
-    where: { id: transcriptionId },
-    select: { fileName: true, audioData: true },
-  });
-  if (!record?.audioData) {
-    throw new NotFoundError(`Transcription ${transcriptionId} has no pending audio data.`);
+  // Store the audio under the record id, then link it. If the write fails we
+  // mark the job failed rather than leaving a stuck `pending` row.
+  try {
+    const audioPath = await saveAudio(record.id, extension, audioData);
+    return prisma.transcription.update({
+      where: { id: record.id },
+      data: { audioPath },
+    });
+  } catch (err) {
+    await prisma.transcription.update({
+      where: { id: record.id },
+      data: { status: 'failed', errorMessage: 'Failed to store the uploaded audio.' },
+    });
+    throw err;
   }
-  return { fileName: record.fileName, audioData: record.audioData };
 }
 
 /**
- * Drop the stored audio bytes for a job that has permanently failed (no more
- * BullMQ retries left). Safe to call even if already cleared.
+ * Atomically claim the oldest unclaimed `pending` job for processing. Returns
+ * the claimed record, or null if there's nothing to do. The conditional
+ * updateMany (status still `pending`) makes the claim safe even if several
+ * worker loops race.
  */
-export async function clearTranscriptionAudio(transcriptionId: string): Promise<void> {
-  await prisma.transcription.updateMany({
-    where: { id: transcriptionId },
-    data: { audioData: null },
+export async function claimNextTranscription(): Promise<Transcription | null> {
+  const candidate = await prisma.transcription.findFirst({
+    where: { status: 'pending', audioPath: { not: null } },
+    orderBy: { createdAt: 'asc' },
   });
+  if (!candidate) return null;
+
+  const claimed = await prisma.transcription.updateMany({
+    where: { id: candidate.id, status: 'pending' },
+    data: { status: 'processing', attempts: { increment: 1 } },
+  });
+  if (claimed.count === 0) return null; // lost the race; another loop got it
+
+  return prisma.transcription.findUnique({ where: { id: candidate.id } });
 }
 
 /**
- * Run Whisper on the given audio bytes for an existing transcription, then
- * atomically persist the result and log usage. Marks the record `failed`
- * (and rethrows) if transcription errors out — but does NOT clear the stored
- * audio bytes on failure, since BullMQ may retry the same job and needs them
- * again (see {@link fetchTranscriptionAudio}). Call {@link clearTranscriptionAudio}
- * once retries are exhausted.
+ * Run Whisper on a claimed transcription, then atomically persist the result
+ * and log usage, and delete the stored audio (we keep only the text). On
+ * failure, either requeue for another attempt (back to `pending`) or mark it
+ * permanently `failed` once attempts are exhausted — deleting the audio then too.
  */
-export async function processTranscription(
-  transcriptionId: string,
-  audioData: Buffer | Uint8Array,
-): Promise<Transcription> {
-  const record = await prisma.transcription.findUnique({ where: { id: transcriptionId } });
-  if (!record) throw new NotFoundError('Transcription not found');
-
-  await prisma.transcription.update({
-    where: { id: transcriptionId },
-    data: { status: 'processing' },
-  });
+export async function processTranscription(record: Transcription): Promise<void> {
+  if (!record.audioPath) {
+    await prisma.transcription.update({
+      where: { id: record.id },
+      data: { status: 'failed', errorMessage: 'Audio file is missing.' },
+    });
+    return;
+  }
 
   try {
+    const audioData = await readAudio(record.audioPath);
     const result = await transcribeAudio(audioData, record.fileName);
 
-    const [updated] = await prisma.$transaction([
+    await prisma.$transaction([
       prisma.transcription.update({
-        where: { id: transcriptionId },
+        where: { id: record.id },
         data: {
           status: 'done',
           text: result.text,
@@ -100,28 +101,32 @@ export async function processTranscription(
           language: result.language,
           costUsd: result.costUsd,
           completedAt: new Date(),
-          audioData: null,
+          audioPath: null,
         },
       }),
       prisma.usageLog.create({
         data: {
           userId: record.userId,
-          transcriptionId,
+          transcriptionId: record.id,
           seconds: result.durationSeconds,
         },
       }),
     ]);
 
-    return updated;
+    await deleteAudio(record.audioPath);
   } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    const giveUp = record.attempts >= MAX_TRANSCRIPTION_ATTEMPTS;
+
     await prisma.transcription.update({
-      where: { id: transcriptionId },
-      data: {
-        status: 'failed',
-        errorMessage: err instanceof Error ? err.message : 'Unknown error',
-      },
+      where: { id: record.id },
+      // Requeue for retry (`pending`) unless we've hit the attempt limit.
+      data: giveUp
+        ? { status: 'failed', errorMessage: message, audioPath: null }
+        : { status: 'pending', errorMessage: message },
     });
-    throw err;
+
+    if (giveUp) await deleteAudio(record.audioPath);
   }
 }
 

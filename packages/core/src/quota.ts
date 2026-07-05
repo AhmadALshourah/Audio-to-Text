@@ -1,5 +1,9 @@
 import { prisma } from '@audio-to-text/db';
-import { PLAN_MONTHLY_MINUTES, type SubscriptionPlan } from '@audio-to-text/shared';
+import {
+  PLAN_MONTHLY_MINUTES,
+  toSubscriptionPlan,
+  type SubscriptionPlan,
+} from '@audio-to-text/shared';
 import { QuotaExceededError } from './errors.js';
 
 export interface QuotaStatus {
@@ -19,7 +23,7 @@ export async function getQuotaStatus(userId: string): Promise<QuotaStatus> {
   });
 
   // A user without a subscription row is treated as a free plan with a fresh period.
-  const plan: SubscriptionPlan = subscription?.plan ?? 'free';
+  const plan: SubscriptionPlan = toSubscriptionPlan(subscription?.plan);
   const periodStart = subscription?.currentPeriodStart ?? startOfCurrentMonth();
 
   const aggregate = await prisma.usageLog.aggregate({

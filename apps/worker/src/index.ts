@@ -1,70 +1,51 @@
-import { Worker, type Job } from 'bullmq';
-import IORedis from 'ioredis';
-import { TRANSCRIPTION_QUEUE_NAME, type TranscriptionJobData } from '@audio-to-text/shared';
-import {
-  clearTranscriptionAudio,
-  fetchTranscriptionAudio,
-  processTranscription,
-} from '@audio-to-text/core';
+import { claimNextTranscription, processTranscription } from '@audio-to-text/core';
 import { env } from './env.js';
 
-async function handleJob(job: Job<TranscriptionJobData>): Promise<void> {
-  const { transcriptionId } = job.data;
-  // eslint-disable-next-line no-console
-  console.log(`[job ${job.id}] processing transcription ${transcriptionId}`);
+/** How long to wait before polling again when the queue is empty. */
+const IDLE_POLL_MS = 2000;
 
-  const { audioData } = await fetchTranscriptionAudio(transcriptionId);
-  await processTranscription(transcriptionId, audioData);
+let running = true;
 
-  // eslint-disable-next-line no-console
-  console.log(`[job ${job.id}] done`);
-}
-
-async function main(): Promise<void> {
-  // eslint-disable-next-line no-console
-  console.log(`🎧 Audio-to-Text worker starting (env: ${env.NODE_ENV})`);
-
-  const connection = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
-
-  const worker = new Worker<TranscriptionJobData>(TRANSCRIPTION_QUEUE_NAME, handleJob, {
-    connection,
-    concurrency: 3,
-  });
-
-  worker.on('completed', (job) => {
-    // eslint-disable-next-line no-console
-    console.log(`✅ job ${job.id} completed`);
-  });
-
-  worker.on('failed', (job, err) => {
-    // eslint-disable-next-line no-console
-    console.error(`❌ job ${job?.id} failed:`, err.message);
-
-    // Once every retry is exhausted, stop holding the audio bytes — a further
-    // retry will never happen, so there's nothing left to reuse them for.
-    const attemptsMade = job?.attemptsMade ?? 0;
-    const maxAttempts = job?.opts.attempts ?? 1;
-    if (job && attemptsMade >= maxAttempts) {
-      void clearTranscriptionAudio(job.data.transcriptionId);
+async function loop(): Promise<void> {
+  while (running) {
+    let didWork = false;
+    try {
+      const job = await claimNextTranscription();
+      if (job) {
+        didWork = true;
+        // eslint-disable-next-line no-console
+        console.log(`[${job.id}] processing "${job.fileName}" (attempt ${job.attempts})`);
+        await processTranscription(job);
+        // eslint-disable-next-line no-console
+        console.log(`[${job.id}] finished`);
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Worker loop error:', err);
     }
-  });
 
-  // eslint-disable-next-line no-console
-  console.log(`✅ Listening on queue "${TRANSCRIPTION_QUEUE_NAME}"`);
-
-  const shutdown = async (): Promise<void> => {
-    // eslint-disable-next-line no-console
-    console.log('Shutting down worker...');
-    await worker.close();
-    connection.disconnect();
-    process.exit(0);
-  };
-  process.on('SIGINT', () => void shutdown());
-  process.on('SIGTERM', () => void shutdown());
+    // Busy-drain the queue; only sleep when there was nothing to do.
+    if (!didWork) await sleep(IDLE_POLL_MS);
+  }
 }
 
-main().catch((err) => {
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// eslint-disable-next-line no-console
+console.log(`🎧 Audio-to-Text worker polling for jobs (env: ${env.NODE_ENV})`);
+
+const shutdown = (): void => {
   // eslint-disable-next-line no-console
-  console.error('Worker failed to start:', err);
+  console.log('Shutting down worker...');
+  running = false;
+};
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+
+loop().catch((err) => {
+  // eslint-disable-next-line no-console
+  console.error('Worker crashed:', err);
   process.exit(1);
 });
