@@ -45,10 +45,10 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   return (
     <div className="w-full max-w-sm">
-      <h1 className="text-2xl font-semibold tracking-tight">
+      <h1 className="font-display text-2xl font-semibold tracking-tight">
         {isSignUp ? 'Create your account' : 'Welcome back'}
       </h1>
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-ink/50">
         {isSignUp ? 'Start transcribing in seconds — it’s free.' : 'Sign in to your dashboard.'}
       </p>
 
@@ -60,7 +60,7 @@ export function AuthForm({ mode }: AuthFormProps) {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-black"
+              className="rounded-md border border-ink/20 bg-paper px-3 py-2 outline-none focus:border-accent"
               autoComplete="name"
             />
           </label>
@@ -72,7 +72,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-black"
+            className="rounded-md border border-ink/20 bg-paper px-3 py-2 outline-none focus:border-accent"
             autoComplete="email"
           />
         </label>
@@ -84,10 +84,10 @@ export function AuthForm({ mode }: AuthFormProps) {
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-black"
+            className="rounded-md border border-ink/20 bg-paper px-3 py-2 outline-none focus:border-accent"
             autoComplete={isSignUp ? 'new-password' : 'current-password'}
           />
-          {isSignUp && <span className="text-xs text-gray-400">At least 8 characters.</span>}
+          {isSignUp && <span className="text-xs text-ink/40">At least 8 characters.</span>}
         </label>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
@@ -95,13 +95,13 @@ export function AuthForm({ mode }: AuthFormProps) {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-black px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
+          className="rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-paper transition-colors hover:bg-black disabled:opacity-50"
         >
           {submitting ? 'Please wait…' : isSignUp ? 'Create account' : 'Sign in'}
         </button>
       </form>
 
-      <p className="mt-4 text-sm text-gray-600">
+      <p className="mt-4 text-sm text-ink/60">
         {isSignUp ? (
           <>
             Already have an account?{' '}

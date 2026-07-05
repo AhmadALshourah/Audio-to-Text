@@ -5,8 +5,8 @@ import type { TranscriptionDTO } from '@/lib/serializers';
 import { formatBytes, formatDate, formatDuration } from '@/lib/format';
 
 const STATUS_STYLES: Record<TranscriptionDTO['status'], string> = {
-  pending: 'bg-gray-100 text-gray-700',
-  processing: 'bg-blue-100 text-blue-700',
+  pending: 'bg-ink/10 text-ink/70',
+  processing: 'bg-accent-soft text-accent-dark',
   done: 'bg-green-100 text-green-700',
   failed: 'bg-red-100 text-red-700',
 };
@@ -32,7 +32,7 @@ export function TranscriptionItem({ item }: { item: TranscriptionDTO }) {
   }
 
   return (
-    <li className="rounded-lg border border-gray-200 p-4">
+    <li className="rounded-lg border border-ink/10 bg-paper p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="font-medium">{item.fileName}</span>
@@ -42,10 +42,10 @@ export function TranscriptionItem({ item }: { item: TranscriptionDTO }) {
             {item.status}
           </span>
         </div>
-        <span className="text-xs text-gray-400">{formatDate(item.createdAt)}</span>
+        <span className="text-xs text-ink/40">{formatDate(item.createdAt)}</span>
       </div>
 
-      <div className="mt-1 flex gap-3 text-xs text-gray-500">
+      <div className="mt-1 flex gap-3 text-xs text-ink/50">
         <span>{formatBytes(item.fileSizeBytes)}</span>
         <span>{formatDuration(item.durationSeconds)}</span>
         {item.costUsd !== null && <span>${item.costUsd.toFixed(4)}</span>}
@@ -53,16 +53,16 @@ export function TranscriptionItem({ item }: { item: TranscriptionDTO }) {
 
       {item.status === 'done' && item.text !== null && (
         <div className="mt-3">
-          <p className="whitespace-pre-wrap text-sm text-gray-800">
+          <p className="whitespace-pre-wrap text-sm text-ink/80">
             {item.text || '(no speech detected)'}
           </p>
           <div className="mt-2 flex gap-3 text-sm">
-            <button onClick={handleCopy} className="font-medium text-black underline">
+            <button onClick={handleCopy} className="font-medium text-accent-dark underline">
               {copied ? 'Copied!' : 'Copy'}
             </button>
             <button
               onClick={() => downloadText(item.fileName, item.text ?? '')}
-              className="font-medium text-black underline"
+              className="font-medium text-accent-dark underline"
             >
               Download .txt
             </button>

@@ -18,7 +18,7 @@ export function SignOutButton() {
     <button
       onClick={handleSignOut}
       disabled={busy}
-      className="text-sm font-medium text-gray-600 hover:text-black disabled:opacity-50"
+      className="text-sm font-medium text-ink/60 hover:text-ink disabled:opacity-50"
     >
       Sign out
     </button>

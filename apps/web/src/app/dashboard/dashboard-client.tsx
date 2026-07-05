@@ -101,9 +101,7 @@ export function DashboardClient({ initialQuota, initialTranscriptions }: Dashboa
       )}
 
       {items.length === 0 ? (
-        <p className="text-center text-sm text-gray-500">
-          No transcriptions yet — upload one above.
-        </p>
+        <p className="text-center text-sm text-ink/50">No transcriptions yet — upload one above.</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {items.map((item) => (

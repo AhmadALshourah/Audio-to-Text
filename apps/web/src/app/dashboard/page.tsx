@@ -20,8 +20,8 @@ export default async function DashboardPage() {
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-8">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <p className="text-sm text-gray-500">{user.name ?? user.email}</p>
+          <h1 className="font-display text-2xl font-semibold">Dashboard</h1>
+          <p className="text-sm text-ink/50">{user.name ?? user.email}</p>
         </div>
         <SignOutButton />
       </header>

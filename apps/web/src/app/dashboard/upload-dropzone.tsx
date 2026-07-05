@@ -64,16 +64,16 @@ export function UploadDropzone({ onUpload, disabled }: UploadDropzoneProps) {
         }}
         className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-10 text-center transition-colors ${
           disabled
-            ? 'cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400'
+            ? 'cursor-not-allowed border-ink/10 bg-paper-soft text-ink/30'
             : dragActive
-              ? 'border-black bg-gray-50'
-              : 'border-gray-300 hover:border-gray-400'
+              ? 'border-accent bg-paper-soft'
+              : 'border-ink/20 hover:border-ink/40'
         }`}
       >
         <p className="font-medium">
           {disabled ? 'Transcribing…' : 'Drop an audio file here, or click to browse'}
         </p>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-ink/50">
           {AUDIO_CONSTRAINTS.SUPPORTED_FORMATS.join(', ')} · max{' '}
           {formatBytes(AUDIO_CONSTRAINTS.MAX_FILE_SIZE_BYTES)}
         </p>

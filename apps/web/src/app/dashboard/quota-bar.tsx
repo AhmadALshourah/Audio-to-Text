@@ -7,16 +7,16 @@ export function QuotaBar({ quota }: { quota: QuotaStatus }) {
   const isLow = quota.remainingMinutes <= quota.limitMinutes * 0.1;
 
   return (
-    <div className="rounded-lg border border-gray-200 p-4">
+    <div className="rounded-lg border border-ink/10 bg-paper-soft p-4">
       <div className="mb-2 flex items-center justify-between text-sm">
         <span className="font-medium capitalize">{quota.plan} plan</span>
-        <span className="text-gray-500">
+        <span className="text-ink/50">
           {quota.usedMinutes.toFixed(1)} / {quota.limitMinutes} min used
         </span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-ink/10">
         <div
-          className={`h-full rounded-full ${isLow ? 'bg-red-500' : 'bg-black'}`}
+          className={`h-full rounded-full ${isLow ? 'bg-red-500' : 'bg-accent'}`}
           style={{ width: `${Math.min(100, pctUsed)}%` }}
         />
       </div>
