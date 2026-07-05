@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { AppError, RateLimitError } from '@audio-to-text/core';
+import { logger } from '@audio-to-text/shared/logger';
 
 /**
  * Convert a thrown error into a consistent JSON error response.
@@ -23,15 +24,40 @@ export function toErrorResponse(err: unknown): NextResponse {
   );
 }
 
-/** Wrap a route handler so any thrown error becomes a structured JSON response. */
+/**
+ * Wrap a route handler so any thrown error becomes a structured JSON response,
+ * and every call (success or failure) logs one structured line: method, path,
+ * status, and elapsed time. Next always invokes route handlers with the real
+ * Request as the first argument, so this works even for handlers that ignore
+ * it in their own signature (e.g. `async () => {...}`).
+ */
 export function withErrorHandling<Args extends unknown[]>(
   handler: (...args: Args) => Promise<NextResponse>,
 ): (...args: Args) => Promise<NextResponse> {
   return async (...args: Args) => {
+    const startedAt = Date.now();
+    const req = args[0] instanceof Request ? args[0] : undefined;
+
+    let response: NextResponse;
     try {
-      return await handler(...args);
+      response = await handler(...args);
     } catch (err) {
-      return toErrorResponse(err);
+      response = toErrorResponse(err);
     }
+
+    logRequest(req, response.status, Date.now() - startedAt);
+    return response;
   };
+}
+
+function logRequest(req: Request | undefined, status: number, elapsedMs: number): void {
+  const fields = {
+    method: req?.method,
+    path: req ? new URL(req.url).pathname : undefined,
+    status,
+    elapsedMs,
+  };
+  if (status >= 500) logger.error('API request', fields);
+  else if (status >= 400) logger.warn('API request', fields);
+  else logger.info('API request', fields);
 }

@@ -79,20 +79,19 @@ export async function claimNextTranscription(): Promise<Transcription | null> {
  * failure, either requeue for another attempt (back to `pending`) or mark it
  * permanently `failed` once attempts are exhausted — deleting the audio then too.
  */
-export async function processTranscription(record: Transcription): Promise<void> {
+export async function processTranscription(record: Transcription): Promise<Transcription> {
   if (!record.audioPath) {
-    await prisma.transcription.update({
+    return prisma.transcription.update({
       where: { id: record.id },
       data: { status: 'failed', errorMessage: 'Audio file is missing.' },
     });
-    return;
   }
 
   try {
     const audioData = await readAudio(record.audioPath);
     const result = await transcribeAudio(audioData, record.fileName);
 
-    await prisma.$transaction([
+    const [updated] = await prisma.$transaction([
       prisma.transcription.update({
         where: { id: record.id },
         data: {
@@ -115,11 +114,12 @@ export async function processTranscription(record: Transcription): Promise<void>
     ]);
 
     await deleteAudio(record.audioPath);
+    return updated;
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     const giveUp = record.attempts >= MAX_TRANSCRIPTION_ATTEMPTS;
 
-    await prisma.transcription.update({
+    const updated = await prisma.transcription.update({
       where: { id: record.id },
       // Requeue for retry (`pending`) unless we've hit the attempt limit.
       data: giveUp
@@ -128,6 +128,7 @@ export async function processTranscription(record: Transcription): Promise<void>
     });
 
     if (giveUp) await deleteAudio(record.audioPath);
+    return updated;
   }
 }
 

@@ -189,12 +189,13 @@
 
 ---
 
-## المرحلة 12 — المراقبة والتحليلات 🟡
+## المرحلة 12 — المراقبة والتحليلات 🟡 ✅ (مُنجزة — logging محلي بدل Sentry/PostHog الخارجيين)
 
-- [ ] Sentry لتتبع الأخطاء في Frontend و Backend و Worker.
-- [ ] Logging منظّم (structured logs) في الـ Worker لتتبع مدة كل Job وتكلفته.
-- [ ] لوحة تحليلات استخدام بسيطة (PostHog) لمعرفة معدل التحويل من الزائر إلى مستخدم مسجّل، ومن Free إلى Pro.
-- [ ] تنبيهات (Alerts) عند ارتفاع معدل فشل الـ Jobs أو ارتفاع غير طبيعي في تكلفة Whisper API.
+- [x] **Logger منظّم** (`packages/shared/src/logger.ts`) — كل سطر JSON واحد (level/msg/time + حقول حرة)، صفر تبعيات خارجية؛ يطبع لـ stdout/stderr (أي شي يلتقطها لاحقًا: systemd journal، docker logs، أو الطرفية بالتطوير).
+- [x] **الـ Worker**: كل مهمة تُسجَّل ببداية/نهاية مع `jobId`, `fileName`, `attempt`, `elapsedMs`, `status`, `audioDurationSeconds`, `costUsd`. مُختبر حيًّا.
+- [x] **الـ Web API**: كل طلب يُسجَّل تلقائيًا (method/path/status/elapsedMs) عبر `withErrorHandling` — بدون تعديل أي route handler، لأن Next يمرّر الـ Request الحقيقي دائمًا للـ wrapper بغض النظر عن توقيع الدالة الداخلية. مُختبر حيًّا: `GET /api/usage` بدون auth → `{"level":"warn",...,"status":401}`.
+- [x] **تنبيهات محلية بسيطة**: تحذير عند تكلفة مهمة واحدة غير طبيعية (≥ $0.50)، وتحذير عند ارتفاع معدل الفشل (≥50% من آخر 10 مهام) — heuristics داخل عملية الـ worker، بدون خدمة تنبيهات خارجية.
+- ~~Sentry/PostHog~~ — غير مناسبين لستاك مستقل بالكامل؛ الـ logging المنظّم البديل كافٍ لحجم المشروع.
 
 ---
 

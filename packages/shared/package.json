@@ -9,7 +9,8 @@
     ".": "./src/index.ts",
     "./env": "./src/env.ts",
     "./types": "./src/types.ts",
-    "./crypto": "./src/crypto.ts"
+    "./crypto": "./src/crypto.ts",
+    "./logger": "./src/logger.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
