@@ -21,6 +21,7 @@ packages/db/prisma/*.db-shm
 
 # ── Local uploaded audio (transient) ──
 data/uploads/
+packages/core/.tmp-test-uploads/
 
 # ── Logs ──
 *.log

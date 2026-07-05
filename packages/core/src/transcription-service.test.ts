@@ -1,0 +1,181 @@
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+import { existsSync } from 'node:fs';
+import { prisma } from '@audio-to-text/db';
+
+// Mock the Whisper call so tests never hit the real OpenAI API (no cost,
+// no network) while still exercising all of our own orchestration logic.
+vi.mock('./whisper.js', () => ({
+  transcribeAudio: vi.fn(),
+}));
+
+import { transcribeAudio } from './whisper.js';
+import {
+  createTranscription,
+  claimNextTranscription,
+  processTranscription,
+} from './transcription-service.js';
+import { ValidationError } from './errors.js';
+
+const mockTranscribe = vi.mocked(transcribeAudio);
+
+// A minimal but valid WAV header — passes the magic-bytes sniff in validation.ts.
+function wavBuffer(): Buffer {
+  const buf = Buffer.alloc(44);
+  buf.write('RIFF', 0);
+  buf.write('WAVE', 8);
+  return buf;
+}
+
+describe('transcription-service', () => {
+  let userId: string;
+
+  beforeAll(async () => {
+    const now = new Date();
+    const periodEnd = new Date(now);
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+    const user = await prisma.user.create({
+      data: {
+        email: `transcription-test-${Date.now()}@example.com`,
+        passwordHash: 'unused',
+        subscription: {
+          create: {
+            plan: 'free',
+            status: 'active',
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+          },
+        },
+      },
+    });
+    userId = user.id;
+  });
+
+  afterAll(async () => {
+    await prisma.user.delete({ where: { id: userId } });
+  });
+
+  // claimNextTranscription() picks the globally-oldest pending job, so a
+  // leftover row from a previous test would break these ordering-sensitive
+  // assertions. Reset the whole queue before each test for a clean slate.
+  beforeEach(async () => {
+    await prisma.transcription.deleteMany({});
+  });
+
+  it('creates a pending record with the audio saved to disk', async () => {
+    const record = await createTranscription(
+      userId,
+      { fileName: 'clip.wav', sizeBytes: 44 },
+      wavBuffer(),
+    );
+
+    expect(record.status).toBe('pending');
+    expect(record.audioPath).toBeTruthy();
+    expect(existsSync(record.audioPath!)).toBe(true);
+  });
+
+  it('rejects content that does not look like audio', async () => {
+    await expect(
+      createTranscription(
+        userId,
+        { fileName: 'fake.wav', sizeBytes: 10 },
+        Buffer.from('not audio'),
+      ),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it('claims the oldest pending job and marks it processing', async () => {
+    const record = await createTranscription(
+      userId,
+      { fileName: 'claim-me.wav', sizeBytes: 44 },
+      wavBuffer(),
+    );
+
+    const claimed = await claimNextTranscription();
+    expect(claimed?.id).toBe(record.id);
+    expect(claimed?.status).toBe('processing');
+    expect(claimed?.attempts).toBe(1);
+
+    // A second claim attempt must not pick up the same (now `processing`) job.
+    const reclaimed = await claimNextTranscription();
+    expect(reclaimed).toBeNull();
+  });
+
+  it('returns null when there is nothing pending', async () => {
+    expect(await claimNextTranscription()).toBeNull();
+  });
+
+  it('processes a claimed job to completion, deletes the audio, and logs usage', async () => {
+    mockTranscribe.mockResolvedValueOnce({
+      text: 'hello world',
+      durationSeconds: 12,
+      language: 'english',
+      costUsd: 0.0012,
+    });
+
+    const record = await createTranscription(
+      userId,
+      { fileName: 'success.wav', sizeBytes: 44 },
+      wavBuffer(),
+    );
+    const claimed = await claimNextTranscription();
+    expect(claimed?.id).toBe(record.id);
+
+    await processTranscription(claimed!);
+
+    const final = await prisma.transcription.findUniqueOrThrow({ where: { id: record.id } });
+    expect(final.status).toBe('done');
+    expect(final.text).toBe('hello world');
+    expect(final.durationSeconds).toBe(12);
+    expect(final.audioPath).toBeNull();
+    expect(existsSync(record.audioPath!)).toBe(false);
+
+    const usage = await prisma.usageLog.findUnique({ where: { transcriptionId: record.id } });
+    expect(usage?.seconds).toBe(12);
+  });
+
+  it('requeues to pending on failure while attempts remain', async () => {
+    mockTranscribe.mockRejectedValueOnce(new Error('transient failure'));
+
+    const record = await createTranscription(
+      userId,
+      { fileName: 'retry-me.wav', sizeBytes: 44 },
+      wavBuffer(),
+    );
+    const claimed = await claimNextTranscription(); // attempts -> 1
+    expect(claimed?.attempts).toBe(1);
+
+    await processTranscription(claimed!);
+
+    const after = await prisma.transcription.findUniqueOrThrow({ where: { id: record.id } });
+    expect(after.status).toBe('pending');
+    expect(after.errorMessage).toBe('transient failure');
+    // Still on disk — a future attempt needs it.
+    expect(existsSync(record.audioPath!)).toBe(true);
+  });
+
+  it('gives up (fails permanently) once attempts are exhausted', async () => {
+    mockTranscribe.mockRejectedValueOnce(new Error('permanent failure'));
+
+    const record = await createTranscription(
+      userId,
+      { fileName: 'give-up.wav', sizeBytes: 44 },
+      wavBuffer(),
+    );
+
+    // First attempt: fails, requeued (attempts=1 < MAX_TRANSCRIPTION_ATTEMPTS=2).
+    let claimed = await claimNextTranscription();
+    await processTranscription(claimed!);
+
+    // Second attempt: fails again, attempts=2 >= max -> permanently failed.
+    mockTranscribe.mockRejectedValueOnce(new Error('permanent failure'));
+    claimed = await claimNextTranscription();
+    expect(claimed?.attempts).toBe(2);
+    await processTranscription(claimed!);
+
+    const final = await prisma.transcription.findUniqueOrThrow({ where: { id: record.id } });
+    expect(final.status).toBe('failed');
+    expect(final.audioPath).toBeNull();
+    expect(existsSync(record.audioPath!)).toBe(false);
+  });
+});
