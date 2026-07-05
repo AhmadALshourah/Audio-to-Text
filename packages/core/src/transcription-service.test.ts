@@ -13,6 +13,7 @@ import {
   createTranscription,
   claimNextTranscription,
   processTranscription,
+  getSubtitles,
 } from './transcription-service.js';
 import { ValidationError } from './errors.js';
 
@@ -111,6 +112,7 @@ describe('transcription-service', () => {
       durationSeconds: 12,
       language: 'english',
       costUsd: 0.0012,
+      segments: [{ start: 0, end: 12, text: 'hello world' }],
     });
 
     const record = await createTranscription(
@@ -129,6 +131,7 @@ describe('transcription-service', () => {
     expect(final.durationSeconds).toBe(12);
     expect(final.audioPath).toBeNull();
     expect(existsSync(record.audioPath!)).toBe(false);
+    expect(JSON.parse(final.segmentsJson!)).toEqual([{ start: 0, end: 12, text: 'hello world' }]);
 
     const usage = await prisma.usageLog.findUnique({ where: { transcriptionId: record.id } });
     expect(usage?.seconds).toBe(12);
@@ -177,5 +180,34 @@ describe('transcription-service', () => {
     expect(final.status).toBe('failed');
     expect(final.audioPath).toBeNull();
     expect(existsSync(record.audioPath!)).toBe(false);
+  });
+
+  it('getSubtitles renders SRT/VTT for a done job and rejects one still pending', async () => {
+    mockTranscribe.mockResolvedValueOnce({
+      text: 'hello world',
+      durationSeconds: 2,
+      language: 'english',
+      costUsd: 0.0002,
+      segments: [{ start: 0, end: 2, text: 'hello world' }],
+    });
+
+    const record = await createTranscription(
+      userId,
+      { fileName: 'subs.wav', sizeBytes: 44 },
+      wavBuffer(),
+    );
+    const pendingSubs = getSubtitles(userId, record.id, 'srt');
+    await expect(pendingSubs).rejects.toThrow(ValidationError);
+
+    const claimed = await claimNextTranscription();
+    await processTranscription(claimed!);
+
+    const srt = await getSubtitles(userId, record.id, 'srt');
+    expect(srt).toContain('00:00:00,000 --> 00:00:02,000');
+    expect(srt).toContain('hello world');
+
+    const vtt = await getSubtitles(userId, record.id, 'vtt');
+    expect(vtt.startsWith('WEBVTT')).toBe(true);
+    expect(vtt).toContain('00:00:00.000 --> 00:00:02.000');
   });
 });

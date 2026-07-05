@@ -21,6 +21,14 @@ function downloadText(fileName: string, text: string) {
   URL.revokeObjectURL(url);
 }
 
+/** Navigate to the subtitles API route; the server sets Content-Disposition
+ * so the browser downloads it (cookies are sent automatically, same-origin). */
+function downloadSubtitles(id: string, format: 'srt' | 'vtt') {
+  const a = document.createElement('a');
+  a.href = `/api/transcriptions/${id}/subtitles?format=${format}`;
+  a.click();
+}
+
 export function TranscriptionItem({ item }: { item: TranscriptionDTO }) {
   const [copied, setCopied] = useState(false);
 
@@ -65,6 +73,18 @@ export function TranscriptionItem({ item }: { item: TranscriptionDTO }) {
               className="font-medium text-accent-dark underline"
             >
               Download .txt
+            </button>
+            <button
+              onClick={() => downloadSubtitles(item.id, 'srt')}
+              className="font-medium text-accent-dark underline"
+            >
+              .srt
+            </button>
+            <button
+              onClick={() => downloadSubtitles(item.id, 'vtt')}
+              className="font-medium text-accent-dark underline"
+            >
+              .vtt
             </button>
           </div>
         </div>

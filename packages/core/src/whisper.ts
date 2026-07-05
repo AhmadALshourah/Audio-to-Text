@@ -1,4 +1,5 @@
 import OpenAI, { toFile } from 'openai';
+import type { TranscriptSegment } from '@audio-to-text/shared';
 import { TranscriptionError } from './errors.js';
 
 /** OpenAI Whisper pricing: $0.006 per minute of audio. */
@@ -21,6 +22,8 @@ export interface TranscribeResult {
   language: string | null;
   /** Estimated cost in USD, rounded to 4 decimals. */
   costUsd: number;
+  /** Timed segments, used to generate SRT/VTT subtitle files. */
+  segments: TranscriptSegment[];
 }
 
 /**
@@ -45,12 +48,18 @@ export async function transcribeAudio(
 
     const durationSeconds = Math.round(res.duration ?? 0);
     const costUsd = roundUsd((durationSeconds / 60) * WHISPER_USD_PER_MINUTE);
+    const segments: TranscriptSegment[] = (res.segments ?? []).map((s) => ({
+      start: s.start,
+      end: s.end,
+      text: s.text.trim(),
+    }));
 
     return {
       text: res.text,
       durationSeconds,
       language: res.language ?? null,
       costUsd,
+      segments,
     };
   } catch (err) {
     if (err instanceof OpenAI.APIError) {

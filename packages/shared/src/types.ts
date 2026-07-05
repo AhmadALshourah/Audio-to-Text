@@ -40,3 +40,10 @@ export type SupportedAudioFormat = (typeof AUDIO_CONSTRAINTS.SUPPORTED_FORMATS)[
 
 /** Max times the polling worker retries a failed transcription before giving up. */
 export const MAX_TRANSCRIPTION_ATTEMPTS = 2;
+
+/** One timed chunk of a transcript, as returned by Whisper's verbose_json response. */
+export interface TranscriptSegment {
+  start: number;
+  end: number;
+  text: string;
+}

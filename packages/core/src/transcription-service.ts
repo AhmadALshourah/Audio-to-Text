@@ -1,10 +1,11 @@
 import { prisma, type Transcription } from '@audio-to-text/db';
-import { MAX_TRANSCRIPTION_ATTEMPTS } from '@audio-to-text/shared';
-import { NotFoundError } from './errors.js';
+import { MAX_TRANSCRIPTION_ATTEMPTS, type TranscriptSegment } from '@audio-to-text/shared';
+import { NotFoundError, ValidationError } from './errors.js';
 import { validateAudioUpload, assertAudioContent } from './validation.js';
 import { assertQuotaAvailable } from './quota.js';
 import { transcribeAudio } from './whisper.js';
 import { saveAudio, readAudio, deleteAudio } from './storage.js';
+import { toSrt, toVtt } from './subtitles.js';
 
 export interface CreateTranscriptionInput {
   fileName: string;
@@ -100,6 +101,7 @@ export async function processTranscription(record: Transcription): Promise<Trans
           durationSeconds: result.durationSeconds,
           language: result.language,
           costUsd: result.costUsd,
+          segmentsJson: JSON.stringify(result.segments),
           completedAt: new Date(),
           audioPath: null,
         },
@@ -139,6 +141,24 @@ export async function getTranscription(userId: string, id: string): Promise<Tran
     throw new NotFoundError('Transcription not found');
   }
   return record;
+}
+
+/**
+ * Render a completed transcription's subtitles. Throws {@link ValidationError}
+ * if the job isn't done yet (ownership is enforced via {@link getTranscription}).
+ */
+export async function getSubtitles(
+  userId: string,
+  id: string,
+  format: 'srt' | 'vtt',
+): Promise<string> {
+  const record = await getTranscription(userId, id);
+  if (record.status !== 'done') {
+    throw new ValidationError('Subtitles are only available once transcription is done.');
+  }
+
+  const segments: TranscriptSegment[] = record.segmentsJson ? JSON.parse(record.segmentsJson) : [];
+  return format === 'srt' ? toSrt(segments) : toVtt(segments);
 }
 
 /** List a user's transcriptions, newest first. */

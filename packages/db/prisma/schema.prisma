@@ -86,6 +86,10 @@ model Transcription {
   language        String? // detected language code
 
   text         String? // result; null until done
+  // JSON-encoded TranscriptSegment[] (packages/shared) — SQLite has no native
+  // JSON column type, so we store it as text and (de)serialize in code. Used
+  // to generate SRT/VTT subtitle files on demand. Null until done.
+  segmentsJson String?
   errorMessage String? // populated only on failure
 
   // Estimated OpenAI cost of this transcription, filled in once done.
