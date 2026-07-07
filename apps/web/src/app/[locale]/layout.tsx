@@ -4,6 +4,7 @@ import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
+import { PLAN_MONTHLY_MINUTES } from '@audio-to-text/shared/types';
 import '../globals.css';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
@@ -26,6 +27,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'metadata' });
+  const description = t('description', { minutes: PLAN_MONTHLY_MINUTES.free });
 
   return {
     metadataBase: new URL(APP_URL),
@@ -33,7 +35,7 @@ export async function generateMetadata({
       default: t('title'),
       template: `%s · ${t('siteName')}`,
     },
-    description: t('description'),
+    description,
     keywords: [
       'audio to text',
       'transcription',
@@ -47,12 +49,12 @@ export async function generateMetadata({
       url: APP_URL,
       siteName: t('siteName'),
       title: t('title'),
-      description: t('description'),
+      description,
     },
     twitter: {
       card: 'summary',
       title: t('title'),
-      description: t('description'),
+      description,
     },
     robots: { index: true, follow: true },
   };
