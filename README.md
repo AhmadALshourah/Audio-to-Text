@@ -3,9 +3,10 @@
 [![CI](https://github.com/AhmadALshourah/Audio-to-Text/actions/workflows/ci.yml/badge.svg)](https://github.com/AhmadALshourah/Audio-to-Text/actions/workflows/ci.yml)
 
 A self-contained SaaS that transcribes audio to text using the OpenAI Whisper
-API — sign up, upload a file, get a transcript, all backed by nothing but a
-local SQLite file and the filesystem. No cloud database, no external auth
-provider, no managed queue.
+API — sign up, upload a file, get a transcript with SRT/VTT subtitles, in
+English or Arabic (RTL), all backed by nothing but a local SQLite file and
+the filesystem. No cloud database, no external auth provider, no managed
+queue.
 
 > **Status:** under active development — see [`phases.md`](./phases.md) for the full roadmap.
 
@@ -43,7 +44,9 @@ Audio-to-Text/
 - **Self-built auth** — email + password, hashed with Node's built-in `scrypt`
   (`packages/shared/src/crypto.ts`), sessions are a random token whose SHA-256
   hash is stored server-side (`Session` table) and set as an httpOnly cookie.
-  No third-party auth provider.
+  No third-party auth provider. Users can permanently delete their own
+  account (and everything derived from it) from the dashboard — see the
+  in-app `/privacy` page for exactly what that removes.
 - **Local filesystem for audio** — files are written to `data/uploads/` on
   upload, read once by the worker, and deleted immediately after processing
   (success or permanent failure). Only the transcribed text is kept long-term.
@@ -51,19 +54,26 @@ Audio-to-Text/
   transcription orchestration) lives here, framework-agnostic, so both the web
   app and the worker import the exact same functions instead of duplicating logic.
 - **`packages/shared`** — one source of truth for domain types (transcription
-  status, plan limits, audio constraints) so nothing can drift.
+  status, plan limits, audio constraints, upload validation rules) so nothing
+  can drift — including between the server and the client-side dropzone.
+- **i18n (English + Arabic)** — every route lives under `apps/web/src/app/
+  [locale]/` via `next-intl`; `/` redirects to the default locale, `dir="rtl"`
+  is set automatically for Arabic, and a locale switcher preserves the
+  current path. Legal pages (Privacy/Terms) stay English-only by design.
 
 ## Tech stack
 
 | Concern        | Choice                                                   |
 | --------------- | --------------------------------------------------------- |
-| Frontend        | Next.js 14 + React 18 + TypeScript + Tailwind              |
+| Frontend        | Next.js 14 + React 18 + TypeScript + Tailwind + framer-motion |
+| i18n            | next-intl (English + Arabic, RTL)                          |
 | Backend API     | Next.js API routes (web) + a polling worker (heavy work)   |
 | Auth            | Self-built — scrypt password hashing + signed session cookie |
 | Database        | SQLite + Prisma                                            |
 | Job processing  | Custom polling worker (atomic claim, no external queue)    |
 | File storage    | Local filesystem, deleted after processing                 |
 | Transcription   | OpenAI Whisper (`whisper-1`) — the only external dependency |
+| Export          | Plain text, plus SRT/VTT subtitles with real timestamps    |
 | Payments        | None — free-only by design (see `phases.md`, Phase 9)       |
 
 ## Getting started
@@ -108,12 +118,13 @@ OpenAI — everything else runs on your machine.
 pnpm test
 ```
 
-57 tests across three packages (Vitest): unit tests for crypto, validation,
-errors, and rate limiting; integration tests for auth, quota, and the full
-transcription lifecycle running against a real, throwaway SQLite database
-(created and torn down automatically — see `packages/core/test/global-setup.ts`).
-The only mocked dependency is the OpenAI Whisper call itself, so tests never
-cost money or need network access.
+67 tests across three packages (Vitest): unit tests for crypto, validation,
+errors, rate limiting, and open-redirect protection; integration tests for
+auth (including account deletion), quota, and the full transcription
+lifecycle — including SRT/VTT rendering — running against a real, throwaway
+SQLite database (created and torn down automatically — see
+`packages/core/test/global-setup.ts`). The only mocked dependency is the
+OpenAI Whisper call itself, so tests never cost money or need network access.
 
 ## Scripts (root)
 
