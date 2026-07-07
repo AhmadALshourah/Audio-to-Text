@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import type { TranscriptionDTO } from '@/lib/serializers';
 import { formatBytes, formatDate, formatDuration } from '@/lib/format';
 
@@ -30,6 +31,7 @@ function downloadSubtitles(id: string, format: 'srt' | 'vtt') {
 }
 
 export function TranscriptionItem({ item }: { item: TranscriptionDTO }) {
+  const t = useTranslations('dashboard');
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -62,17 +64,17 @@ export function TranscriptionItem({ item }: { item: TranscriptionDTO }) {
       {item.status === 'done' && item.text !== null && (
         <div className="mt-3">
           <p className="whitespace-pre-wrap text-sm text-ink/80">
-            {item.text || '(no speech detected)'}
+            {item.text || t('noSpeechDetected')}
           </p>
           <div className="mt-2 flex gap-3 text-sm">
             <button onClick={handleCopy} className="font-medium text-accent-dark underline">
-              {copied ? 'Copied!' : 'Copy'}
+              {copied ? t('copied') : t('copy')}
             </button>
             <button
               onClick={() => downloadText(item.fileName, item.text ?? '')}
               className="font-medium text-accent-dark underline"
             >
-              Download .txt
+              {t('downloadTxt')}
             </button>
             <button
               onClick={() => downloadSubtitles(item.id, 'srt')}

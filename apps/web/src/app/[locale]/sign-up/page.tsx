@@ -1,12 +1,16 @@
 import { Suspense } from 'react';
-import { redirect } from 'next/navigation';
+import { setRequestLocale } from 'next-intl/server';
+import { redirect } from '@/i18n/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { AuthForm } from '../(auth)/auth-form';
 
 export const runtime = 'nodejs';
 
-export default async function SignUpPage() {
-  if (await getCurrentUser()) redirect('/dashboard');
+export default async function SignUpPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
+  if (await getCurrentUser()) redirect({ href: '/dashboard', locale });
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
       <Suspense>

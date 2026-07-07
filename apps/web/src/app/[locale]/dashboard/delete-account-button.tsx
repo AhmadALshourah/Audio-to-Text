@@ -1,16 +1,16 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 
 export function DeleteAccountButton() {
+  const t = useTranslations('dashboard');
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
   async function handleDelete() {
-    const confirmed = window.confirm(
-      'Delete your account permanently? This removes your transcription history and cannot be undone.',
-    );
+    const confirmed = window.confirm(t('deleteConfirm'));
     if (!confirmed) return;
 
     setBusy(true);
@@ -25,7 +25,7 @@ export function DeleteAccountButton() {
       disabled={busy}
       className="text-xs text-red-600/70 hover:text-red-600 disabled:opacity-50"
     >
-      Delete account
+      {t('deleteAccount')}
     </button>
   );
 }

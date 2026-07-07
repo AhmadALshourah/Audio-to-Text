@@ -1,9 +1,11 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 
 export function SignOutButton() {
+  const t = useTranslations('dashboard');
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
@@ -20,7 +22,7 @@ export function SignOutButton() {
       disabled={busy}
       className="text-sm font-medium text-ink/60 hover:text-ink disabled:opacity-50"
     >
-      Sign out
+      {t('signOut')}
     </button>
   );
 }

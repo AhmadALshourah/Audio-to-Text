@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { setRequestLocale } from 'next-intl/server';
 import { LegalPage } from '@/components/legal-page';
 import { PLAN_MONTHLY_MINUTES, MAX_TRANSCRIPTION_ATTEMPTS } from '@audio-to-text/shared/types';
 
@@ -10,7 +11,10 @@ export const metadata: Metadata = {
 // TODO: replace with your real support address before a public launch.
 const SUPPORT_EMAIL = 'support@audio-to-text.app';
 
-export default function PrivacyPage() {
+export default async function PrivacyPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   return (
     <LegalPage title="Privacy Policy" lastUpdated="July 2026">
       <p>

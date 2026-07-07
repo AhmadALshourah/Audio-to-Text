@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 interface AuthFormProps {
@@ -9,6 +10,7 @@ interface AuthFormProps {
 }
 
 export function AuthForm({ mode }: AuthFormProps) {
+  const t = useTranslations('auth');
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
@@ -32,13 +34,13 @@ export function AuthForm({ mode }: AuthFormProps) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data?.error?.message ?? 'Something went wrong.');
+        throw new Error(data?.error?.message ?? t('genericError'));
       }
       const redirect = searchParams.get('redirect') || '/dashboard';
       router.push(redirect);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      setError(err instanceof Error ? err.message : t('genericError'));
       setSubmitting(false);
     }
   }
@@ -46,16 +48,16 @@ export function AuthForm({ mode }: AuthFormProps) {
   return (
     <div className="w-full max-w-sm">
       <h1 className="font-display text-2xl font-semibold tracking-tight">
-        {isSignUp ? 'Create your account' : 'Welcome back'}
+        {isSignUp ? t('signUpTitle') : t('signInTitle')}
       </h1>
       <p className="mt-1 text-sm text-ink/50">
-        {isSignUp ? 'Start transcribing in seconds — it’s free.' : 'Sign in to your dashboard.'}
+        {isSignUp ? t('signUpSubtitle') : t('signInSubtitle')}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
         {isSignUp && (
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Name (optional)</span>
+            <span className="font-medium">{t('nameLabel')}</span>
             <input
               type="text"
               value={name}
@@ -66,7 +68,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           </label>
         )}
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Email</span>
+          <span className="font-medium">{t('emailLabel')}</span>
           <input
             type="email"
             required
@@ -77,7 +79,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Password</span>
+          <span className="font-medium">{t('passwordLabel')}</span>
           <input
             type="password"
             required
@@ -87,22 +89,22 @@ export function AuthForm({ mode }: AuthFormProps) {
             className="rounded-md border border-ink/20 bg-paper px-3 py-2 outline-none focus:border-accent"
             autoComplete={isSignUp ? 'new-password' : 'current-password'}
           />
-          {isSignUp && <span className="text-xs text-ink/40">At least 8 characters.</span>}
+          {isSignUp && <span className="text-xs text-ink/40">{t('passwordHint')}</span>}
         </label>
 
         {isSignUp && (
           <label className="flex items-start gap-2 text-xs text-ink/60">
             <input type="checkbox" required className="mt-0.5 h-3.5 w-3.5 accent-accent" />
             <span>
-              I agree to the{' '}
+              {t('consentPrefix')}{' '}
               <Link href="/terms" className="font-medium underline" target="_blank">
-                Terms of Service
+                {t('termsLink')}
               </Link>{' '}
-              and{' '}
+              {t('consentAnd')}{' '}
               <Link href="/privacy" className="font-medium underline" target="_blank">
-                Privacy Policy
+                {t('privacyLink')}
               </Link>
-              , and confirm I have the right to upload any audio I share.
+              {t('consentSuffix')}
             </span>
           </label>
         )}
@@ -114,23 +116,23 @@ export function AuthForm({ mode }: AuthFormProps) {
           disabled={submitting}
           className="rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-paper transition-colors hover:bg-black disabled:opacity-50"
         >
-          {submitting ? 'Please wait…' : isSignUp ? 'Create account' : 'Sign in'}
+          {submitting ? t('submitting') : isSignUp ? t('createAccount') : t('signIn')}
         </button>
       </form>
 
       <p className="mt-4 text-sm text-ink/60">
         {isSignUp ? (
           <>
-            Already have an account?{' '}
+            {t('alreadyHaveAccount')}{' '}
             <Link href="/sign-in" className="font-medium underline">
-              Sign in
+              {t('signInLink')}
             </Link>
           </>
         ) : (
           <>
-            Don’t have an account?{' '}
+            {t('noAccount')}{' '}
             <Link href="/sign-up" className="font-medium underline">
-              Sign up
+              {t('signUpLink')}
             </Link>
           </>
         )}

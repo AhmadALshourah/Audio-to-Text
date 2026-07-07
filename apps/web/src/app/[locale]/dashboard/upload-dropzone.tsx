@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { AUDIO_CONSTRAINTS, type SupportedAudioFormat } from '@audio-to-text/shared/types';
 import { formatBytes } from '@/lib/format';
 
@@ -9,19 +10,26 @@ interface UploadDropzoneProps {
   disabled: boolean;
 }
 
-function validateClientSide(file: File): string | null {
+function validateClientSide(
+  file: File,
+  t: (key: string, values?: Record<string, string | number>) => string,
+): string | null {
   const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
   const supported = AUDIO_CONSTRAINTS.SUPPORTED_FORMATS as readonly string[];
   if (!supported.includes(ext)) {
-    return `Unsupported format ".${ext}". Supported: ${AUDIO_CONSTRAINTS.SUPPORTED_FORMATS.join(', ')}.`;
+    return t('unsupportedFormat', { ext, formats: AUDIO_CONSTRAINTS.SUPPORTED_FORMATS.join(', ') });
   }
   if (file.size > AUDIO_CONSTRAINTS.MAX_FILE_SIZE_BYTES) {
-    return `File too large (${formatBytes(file.size)}). Max ${formatBytes(AUDIO_CONSTRAINTS.MAX_FILE_SIZE_BYTES)}.`;
+    return t('fileTooLarge', {
+      size: formatBytes(file.size),
+      max: formatBytes(AUDIO_CONSTRAINTS.MAX_FILE_SIZE_BYTES),
+    });
   }
   return null;
 }
 
 export function UploadDropzone({ onUpload, disabled }: UploadDropzoneProps) {
+  const t = useTranslations('dashboard');
   const [dragActive, setDragActive] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -29,7 +37,7 @@ export function UploadDropzone({ onUpload, disabled }: UploadDropzoneProps) {
   const processFile = useCallback(
     async (file: File | undefined) => {
       if (!file) return;
-      const validationError = validateClientSide(file);
+      const validationError = validateClientSide(file, t);
       if (validationError) {
         setLocalError(validationError);
         return;
@@ -37,7 +45,7 @@ export function UploadDropzone({ onUpload, disabled }: UploadDropzoneProps) {
       setLocalError(null);
       await onUpload(file);
     },
-    [onUpload],
+    [onUpload, t],
   );
 
   return (
@@ -70,11 +78,9 @@ export function UploadDropzone({ onUpload, disabled }: UploadDropzoneProps) {
               : 'border-ink/20 hover:border-ink/40'
         }`}
       >
-        <p className="font-medium">
-          {disabled ? 'Transcribing…' : 'Drop an audio file here, or click to browse'}
-        </p>
+        <p className="font-medium">{disabled ? t('dropzoneBusy') : t('dropzoneIdle')}</p>
         <p className="text-sm text-ink/50">
-          {AUDIO_CONSTRAINTS.SUPPORTED_FORMATS.join(', ')} · max{' '}
+          {AUDIO_CONSTRAINTS.SUPPORTED_FORMATS.join(', ')} · {t('dropzoneMax')}{' '}
           {formatBytes(AUDIO_CONSTRAINTS.MAX_FILE_SIZE_BYTES)}
         </p>
         <input

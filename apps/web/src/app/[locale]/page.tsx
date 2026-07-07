@@ -1,82 +1,95 @@
 import Image from 'next/image';
-import Link from 'next/link';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { PLAN_MONTHLY_MINUTES } from '@audio-to-text/shared/types';
 import { getCurrentUser } from '@/lib/auth';
 import { Reveal } from '@/components/reveal';
-import heroWaveform from '../../public/images/hero-waveform.webp';
+import { LocaleSwitcher } from '@/components/locale-switcher';
+import { Link } from '@/i18n/navigation';
+import heroWaveform from '../../../public/images/hero-waveform.webp';
 
 export const runtime = 'nodejs';
 
 /* ─────────────────────────── Shared bits ─────────────────────────── */
 
-function PrimaryCta({ signedIn, children }: { signedIn: boolean; children: React.ReactNode }) {
+function PrimaryCta({
+  signedIn,
+  children,
+  dashboardLabel,
+}: {
+  signedIn: boolean;
+  children: React.ReactNode;
+  dashboardLabel: string;
+}) {
   return (
     <Link
       href={signedIn ? '/dashboard' : '/sign-up'}
       className="rounded-md bg-ink px-6 py-3 text-sm font-medium text-paper transition-colors hover:bg-black"
     >
-      {signedIn ? 'Open dashboard' : children}
+      {signedIn ? dashboardLabel : children}
     </Link>
   );
 }
 
 /* ─────────────────────────── Sections ─────────────────────────── */
 
-function Header({ signedIn }: { signedIn: boolean }) {
+async function Header({ signedIn }: { signedIn: boolean }) {
+  const t = await getTranslations('nav');
   return (
     <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-5">
-      <span className="font-display text-sm font-semibold tracking-tight">Audio→Text</span>
+      <span className="font-display text-sm font-semibold tracking-tight" dir="ltr">
+        Audio→Text
+      </span>
       <nav className="flex items-center gap-5 text-sm">
         <a href="#how-it-works" className="text-ink/60 hover:text-ink">
-          How it works
+          {t('howItWorks')}
         </a>
         <a href="#pricing" className="text-ink/60 hover:text-ink">
-          Pricing
+          {t('pricing')}
         </a>
         {signedIn ? (
           <Link href="/dashboard" className="font-medium hover:underline">
-            Dashboard
+            {t('dashboard')}
           </Link>
         ) : (
           <Link href="/sign-in" className="font-medium hover:underline">
-            Sign in
+            {t('signIn')}
           </Link>
         )}
+        <LocaleSwitcher />
       </nav>
     </header>
   );
 }
 
-function Hero({ signedIn }: { signedIn: boolean }) {
+async function Hero({ signedIn }: { signedIn: boolean }) {
+  const t = await getTranslations('hero');
   return (
     <section className="mx-auto flex max-w-4xl flex-col items-center gap-6 px-6 pb-4 pt-16 text-center">
       <Reveal>
         <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-          Turn audio into accurate text
-          <span className="block text-accent">in seconds, not hours.</span>
+          {t('titleLine1')}
+          <span className="block text-accent">{t('titleLine2')}</span>
         </h1>
       </Reveal>
       <Reveal delay={0.08}>
-        <p className="max-w-xl text-lg text-ink/60">
-          Drop in a recording — a meeting, a lecture, a voice note — and get a clean transcript
-          powered by OpenAI Whisper. No installs, no manual typing, no waiting around.
-        </p>
+        <p className="max-w-xl text-lg text-ink/60">{t('subtitle')}</p>
       </Reveal>
       <Reveal delay={0.16}>
         <div className="flex items-center gap-3">
-          <PrimaryCta signedIn={signedIn}>Start transcribing — free</PrimaryCta>
+          <PrimaryCta signedIn={signedIn} dashboardLabel={t('ctaOpenDashboard')}>
+            {t('ctaStart')}
+          </PrimaryCta>
           <a
             href="#how-it-works"
             className="px-4 py-3 text-sm font-medium text-ink/60 hover:text-ink"
           >
-            See how it works ↓
+            {t('seeHowItWorks')}
           </a>
         </div>
       </Reveal>
       <Reveal delay={0.22}>
         <p className="text-xs text-ink/40">
-          Free plan includes {PLAN_MONTHLY_MINUTES.free} minutes of audio every month. No credit
-          card required.
+          {t('freeNote', { minutes: PLAN_MONTHLY_MINUTES.free })}
         </p>
       </Reveal>
 
@@ -84,7 +97,7 @@ function Hero({ signedIn }: { signedIn: boolean }) {
         <div className="overflow-hidden rounded-2xl border border-ink/10 bg-paper-soft shadow-[0_20px_60px_-25px_rgba(26,25,23,0.35)]">
           <Image
             src={heroWaveform}
-            alt="Abstract sound waveform resolving into clean lines, representing audio becoming text"
+            alt={t('imageAlt')}
             priority
             placeholder="blur"
             sizes="(max-width: 896px) 100vw, 896px"
@@ -96,35 +109,24 @@ function Hero({ signedIn }: { signedIn: boolean }) {
   );
 }
 
-const STEPS = [
-  {
-    n: '1',
-    title: 'Upload your audio',
-    body: 'Drag & drop any common format — mp3, wav, m4a, flac, ogg and more. Files up to 25 MB.',
-  },
-  {
-    n: '2',
-    title: 'Whisper transcribes it',
-    body: 'State-of-the-art speech recognition handles accents, background noise, and dozens of languages.',
-  },
-  {
-    n: '3',
-    title: 'Copy or download the text',
-    body: 'Your transcript is ready in seconds. Copy it to the clipboard or download it as a .txt file.',
-  },
-] as const;
+async function HowItWorks() {
+  const t = await getTranslations('howItWorks');
+  const steps = [
+    { n: '1', title: t('step1Title'), body: t('step1Body') },
+    { n: '2', title: t('step2Title'), body: t('step2Body') },
+    { n: '3', title: t('step3Title'), body: t('step3Body') },
+  ];
 
-function HowItWorks() {
   return (
     <section id="how-it-works" className="border-y border-ink/10 bg-paper-soft">
       <div className="mx-auto max-w-5xl px-6 py-16">
         <Reveal>
           <h2 className="text-center font-display text-2xl font-semibold tracking-tight">
-            How it works
+            {t('heading')}
           </h2>
         </Reveal>
         <div className="mt-10 grid gap-8 sm:grid-cols-3">
-          {STEPS.map((step, i) => (
+          {steps.map((step, i) => (
             <Reveal key={step.n} delay={i * 0.08}>
               <div className="flex flex-col gap-2">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-sm font-semibold text-paper">
@@ -141,43 +143,22 @@ function HowItWorks() {
   );
 }
 
-const FEATURES = [
-  {
-    title: 'Built on OpenAI Whisper',
-    body: 'The same model trusted across the industry for near-human transcription accuracy.',
-  },
-  {
-    title: 'Any language, any accent',
-    body: 'Whisper was trained on 680,000 hours of multilingual audio. Speak how you speak.',
-  },
-  {
-    title: 'Know your usage',
-    body: 'A clear monthly minute counter — see exactly what you have used and what is left.',
-  },
-  {
-    title: 'Your transcripts, organized',
-    body: 'Every transcription is saved to your private history, searchable whenever you need it.',
-  },
-  {
-    title: 'Export instantly',
-    body: 'One-click copy to clipboard, or download transcripts as plain .txt files.',
-  },
-  {
-    title: 'Private by design',
-    body: 'Your files are processed for transcription only — never used to train models.',
-  },
-] as const;
+async function Features() {
+  const t = await getTranslations('features');
+  const features = [1, 2, 3, 4, 5, 6].map((n) => ({
+    title: t(`f${n}Title` as 'f1Title'),
+    body: t(`f${n}Body` as 'f1Body'),
+  }));
 
-function Features() {
   return (
     <section className="mx-auto max-w-5xl px-6 py-16">
       <Reveal>
         <h2 className="text-center font-display text-2xl font-semibold tracking-tight">
-          Everything you need. Nothing you don&apos;t.
+          {t('heading')}
         </h2>
       </Reveal>
       <div className="mt-10 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-        {FEATURES.map((f, i) => (
+        {features.map((f, i) => (
           <Reveal key={f.title} delay={(i % 3) * 0.08}>
             <div>
               <h3 className="font-medium">{f.title}</h3>
@@ -190,35 +171,36 @@ function Features() {
   );
 }
 
-function Pricing({ signedIn }: { signedIn: boolean }) {
+async function Pricing({ signedIn }: { signedIn: boolean }) {
+  const t = await getTranslations('pricing');
   return (
     <section id="pricing" className="border-y border-ink/10 bg-paper-soft">
       <div className="mx-auto max-w-md px-6 py-16">
         <Reveal>
           <h2 className="text-center font-display text-2xl font-semibold tracking-tight">
-            Simple, honest pricing
+            {t('heading')}
           </h2>
-          <p className="mt-2 text-center text-sm text-ink/60">
-            No tiers, no credit card, no surprises.
-          </p>
+          <p className="mt-2 text-center text-sm text-ink/60">{t('subheading')}</p>
         </Reveal>
 
         <Reveal delay={0.1}>
           <div className="mt-10 flex flex-col gap-4 rounded-xl border border-ink/10 bg-paper p-6 shadow-[0_20px_50px_-30px_rgba(26,25,23,0.4)]">
             <div>
-              <h3 className="font-semibold">Free</h3>
+              <h3 className="font-semibold">{t('planName')}</h3>
               <p className="mt-1 text-3xl font-bold">
-                $0<span className="text-sm font-normal text-ink/50"> / month</span>
+                $0<span className="text-sm font-normal text-ink/50"> {t('perMonth')}</span>
               </p>
             </div>
             <ul className="flex flex-col gap-2 text-sm text-ink/60">
-              <li>✓ {PLAN_MONTHLY_MINUTES.free} minutes of audio per month</li>
-              <li>✓ All supported formats, files up to 25 MB</li>
-              <li>✓ Full transcription history</li>
-              <li>✓ Copy &amp; .txt export</li>
+              <li>✓ {t('feature1', { minutes: PLAN_MONTHLY_MINUTES.free })}</li>
+              <li>✓ {t('feature2')}</li>
+              <li>✓ {t('feature3')}</li>
+              <li>✓ {t('feature4')}</li>
             </ul>
             <div className="mt-auto">
-              <PrimaryCta signedIn={signedIn}>Get started free</PrimaryCta>
+              <PrimaryCta signedIn={signedIn} dashboardLabel={t('cta')}>
+                {t('cta')}
+              </PrimaryCta>
             </div>
           </div>
         </Reveal>
@@ -227,44 +209,46 @@ function Pricing({ signedIn }: { signedIn: boolean }) {
   );
 }
 
-function FinalCta({ signedIn }: { signedIn: boolean }) {
+async function FinalCta({ signedIn }: { signedIn: boolean }) {
+  const t = await getTranslations('finalCta');
   return (
     <section className="mx-auto flex max-w-3xl flex-col items-center gap-5 px-6 py-20 text-center">
       <Reveal>
-        <h2 className="font-display text-3xl font-semibold tracking-tight">
-          Stop typing what you already said.
-        </h2>
+        <h2 className="font-display text-3xl font-semibold tracking-tight">{t('heading')}</h2>
       </Reveal>
       <Reveal delay={0.08}>
         <p className="max-w-md text-ink/60">
-          Your first {PLAN_MONTHLY_MINUTES.free} minutes are free every month — upload a file and
-          see the transcript for yourself.
+          {t('subtitle', { minutes: PLAN_MONTHLY_MINUTES.free })}
         </p>
       </Reveal>
       <Reveal delay={0.16}>
-        <PrimaryCta signedIn={signedIn}>Start transcribing — free</PrimaryCta>
+        <PrimaryCta signedIn={signedIn} dashboardLabel={t('cta')}>
+          {t('cta')}
+        </PrimaryCta>
       </Reveal>
     </section>
   );
 }
 
-function Footer() {
+async function Footer() {
+  const tNav = await getTranslations('nav');
+  const tFooter = await getTranslations('footer');
   return (
     <footer className="border-t border-ink/10">
       <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-6 py-8 text-xs text-ink/40 sm:flex-row">
-        <span>© {new Date().getFullYear()} Audio→Text. Powered by OpenAI Whisper.</span>
+        <span>{tFooter('copyright', { year: new Date().getFullYear() })}</span>
         <div className="flex gap-4">
           <a href="#how-it-works" className="hover:text-ink/60">
-            How it works
+            {tNav('howItWorks')}
           </a>
           <a href="#pricing" className="hover:text-ink/60">
-            Pricing
+            {tNav('pricing')}
           </a>
           <Link href="/privacy" className="hover:text-ink/60">
-            Privacy
+            {tNav('privacy')}
           </Link>
           <Link href="/terms" className="hover:text-ink/60">
-            Terms
+            {tNav('terms')}
           </Link>
         </div>
       </div>
@@ -274,7 +258,10 @@ function Footer() {
 
 /* ─────────────────────────── Page ─────────────────────────── */
 
-export default async function HomePage() {
+export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   const signedIn = Boolean(await getCurrentUser());
   return (
     <>

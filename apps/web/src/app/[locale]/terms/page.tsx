@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import { setRequestLocale } from 'next-intl/server';
 import { LegalPage } from '@/components/legal-page';
+import { Link } from '@/i18n/navigation';
 import { PLAN_MONTHLY_MINUTES, AUDIO_CONSTRAINTS } from '@audio-to-text/shared/types';
 
 export const metadata: Metadata = {
@@ -9,7 +11,10 @@ export const metadata: Metadata = {
 
 const SUPPORT_EMAIL = 'support@audio-to-text.app';
 
-export default function TermsPage() {
+export default async function TermsPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   return (
     <LegalPage title="Terms of Service" lastUpdated="July 2026">
       <p>These terms govern your use of Audio→Text. By creating an account, you agree to them.</p>
@@ -61,8 +66,8 @@ export default function TermsPage() {
         <h2>Your content</h2>
         <p>
           You retain all rights to the audio you upload and the transcripts you receive. We claim no
-          ownership over either. See our <a href="/privacy">Privacy Policy</a> for exactly how your
-          audio and transcripts are handled and stored.
+          ownership over either. See our <Link href="/privacy">Privacy Policy</Link> for exactly how
+          your audio and transcripts are handled and stored.
         </p>
       </section>
 

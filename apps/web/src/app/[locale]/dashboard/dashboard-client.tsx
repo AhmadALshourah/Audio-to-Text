@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import type { QuotaStatus } from '@audio-to-text/core';
 import type { TranscriptionDTO } from '@/lib/serializers';
 import { QuotaBar } from './quota-bar';
@@ -21,6 +22,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 export function DashboardClient({ initialQuota, initialTranscriptions }: DashboardClientProps) {
+  const t = useTranslations('dashboard');
   const [quota, setQuota] = useState(initialQuota);
   const [items, setItems] = useState(initialTranscriptions);
   const [uploading, setUploading] = useState(false);
@@ -75,7 +77,7 @@ export function DashboardClient({ initialQuota, initialTranscriptions }: Dashboa
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data?.error?.message ?? 'Upload failed.');
+        throw new Error(data?.error?.message ?? t('uploadFailed'));
       }
 
       const record = data as TranscriptionDTO;
@@ -84,7 +86,7 @@ export function DashboardClient({ initialQuota, initialTranscriptions }: Dashboa
 
       void pollTranscription(record.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed.');
+      setError(err instanceof Error ? err.message : t('uploadFailed'));
       setItems((prev) => prev.filter((t) => t.id !== tempId));
       setUploading(false);
     }
@@ -101,7 +103,7 @@ export function DashboardClient({ initialQuota, initialTranscriptions }: Dashboa
       )}
 
       {items.length === 0 ? (
-        <p className="text-center text-sm text-ink/50">No transcriptions yet — upload one above.</p>
+        <p className="text-center text-sm text-ink/50">{t('noTranscriptions')}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {items.map((item) => (

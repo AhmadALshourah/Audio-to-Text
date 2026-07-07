@@ -1,0 +1,117 @@
+{
+  "metadata": {
+    "siteName": "Audio→Text",
+    "title": "Audio→Text — Turn audio into accurate text in seconds",
+    "description": "Upload a recording and get a clean, accurate transcript powered by OpenAI Whisper. Free plan with {minutes} minutes of audio every month — no credit card required."
+  },
+  "nav": {
+    "howItWorks": "How it works",
+    "pricing": "Pricing",
+    "signIn": "Sign in",
+    "dashboard": "Dashboard",
+    "privacy": "Privacy",
+    "terms": "Terms"
+  },
+  "hero": {
+    "titleLine1": "Turn audio into accurate text",
+    "titleLine2": "in seconds, not hours.",
+    "subtitle": "Drop in a recording — a meeting, a lecture, a voice note — and get a clean transcript powered by OpenAI Whisper. No installs, no manual typing, no waiting around.",
+    "ctaStart": "Start transcribing — free",
+    "ctaOpenDashboard": "Open dashboard",
+    "seeHowItWorks": "See how it works ↓",
+    "freeNote": "Free plan includes {minutes} minutes of audio every month. No credit card required.",
+    "imageAlt": "Abstract sound waveform resolving into clean lines, representing audio becoming text"
+  },
+  "howItWorks": {
+    "heading": "How it works",
+    "step1Title": "Upload your audio",
+    "step1Body": "Drag & drop any common format — mp3, wav, m4a, flac, ogg and more. Files up to 25 MB.",
+    "step2Title": "Whisper transcribes it",
+    "step2Body": "State-of-the-art speech recognition handles accents, background noise, and dozens of languages.",
+    "step3Title": "Copy or download the text",
+    "step3Body": "Your transcript is ready in seconds. Copy it to the clipboard or download it as a .txt file."
+  },
+  "features": {
+    "heading": "Everything you need. Nothing you don't.",
+    "f1Title": "Built on OpenAI Whisper",
+    "f1Body": "The same model trusted across the industry for near-human transcription accuracy.",
+    "f2Title": "Any language, any accent",
+    "f2Body": "Whisper was trained on 680,000 hours of multilingual audio. Speak how you speak.",
+    "f3Title": "Know your usage",
+    "f3Body": "A clear monthly minute counter — see exactly what you have used and what is left.",
+    "f4Title": "Your transcripts, organized",
+    "f4Body": "Every transcription is saved to your private history, searchable whenever you need it.",
+    "f5Title": "Export instantly",
+    "f5Body": "One-click copy to clipboard, or download transcripts as plain .txt files.",
+    "f6Title": "Private by design",
+    "f6Body": "Your files are processed for transcription only — never used to train models."
+  },
+  "pricing": {
+    "heading": "Simple, honest pricing",
+    "subheading": "No tiers, no credit card, no surprises.",
+    "planName": "Free",
+    "perMonth": "/ month",
+    "feature1": "{minutes} minutes of audio per month",
+    "feature2": "All supported formats, files up to 25 MB",
+    "feature3": "Full transcription history",
+    "feature4": "Copy & .txt export",
+    "cta": "Get started free"
+  },
+  "finalCta": {
+    "heading": "Stop typing what you already said.",
+    "subtitle": "Your first {minutes} minutes are free every month — upload a file and see the transcript for yourself.",
+    "cta": "Start transcribing — free"
+  },
+  "footer": {
+    "copyright": "© {year} Audio→Text. Powered by OpenAI Whisper."
+  },
+  "auth": {
+    "signUpTitle": "Create your account",
+    "signUpSubtitle": "Start transcribing in seconds — it's free.",
+    "signInTitle": "Welcome back",
+    "signInSubtitle": "Sign in to your dashboard.",
+    "nameLabel": "Name (optional)",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "passwordHint": "At least 8 characters.",
+    "consentPrefix": "I agree to the",
+    "termsLink": "Terms of Service",
+    "consentAnd": "and",
+    "privacyLink": "Privacy Policy",
+    "consentSuffix": ", and confirm I have the right to upload any audio I share.",
+    "submitting": "Please wait…",
+    "createAccount": "Create account",
+    "signIn": "Sign in",
+    "alreadyHaveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "signUpLink": "Sign up",
+    "signInLink": "Sign in",
+    "genericError": "Something went wrong."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "planFree": "Free",
+    "planPro": "Pro",
+    "planSuffix": "plan",
+    "quotaUsed": "{used} / {limit} min used",
+    "quotaRemaining": "{minutes} minutes remaining this month.",
+    "dropzoneBusy": "Transcribing…",
+    "dropzoneIdle": "Drop an audio file here, or click to browse",
+    "dropzoneMax": "max",
+    "noTranscriptions": "No transcriptions yet — upload one above.",
+    "noSpeechDetected": "(no speech detected)",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "downloadTxt": "Download .txt",
+    "signOut": "Sign out",
+    "deleteAccount": "Delete account",
+    "deleteConfirm": "Delete your account permanently? This removes your transcription history and cannot be undone.",
+    "uploadFailed": "Upload failed.",
+    "unsupportedFormat": "Unsupported format \".{ext}\". Supported: {formats}.",
+    "fileTooLarge": "File too large ({size}). Max {max}."
+  },
+  "legal": {
+    "backToHome": "← Back to home",
+    "lastUpdated": "Last updated"
+  }
+}
