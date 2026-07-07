@@ -11,6 +11,13 @@ interface Window {
   resetAt: number;
 }
 
+/** Hard cap on tracked keys, independent of expiry — bounds memory even when
+ * many distinct keys (e.g. a wide spread of source IPs) are all still within
+ * their window and so wouldn't be swept as "expired". */
+const MAX_TRACKED_KEYS = 20_000;
+
+// A Map preserves insertion order, so the first entries are the oldest —
+// exactly what we want to evict first once the hard cap is hit.
 const windows = new Map<string, Window>();
 
 /**
@@ -23,7 +30,7 @@ export function enforceRateLimit(key: string, limit: number, windowMs: number): 
 
   if (!existing || existing.resetAt <= now) {
     windows.set(key, { count: 1, resetAt: now + windowMs });
-    sweepIfLarge(now);
+    sweep(now);
     return;
   }
 
@@ -41,10 +48,23 @@ export function clientIp(req: Request): string {
   return req.headers.get('x-real-ip')?.trim() || 'unknown';
 }
 
-/** Drop expired windows occasionally so the map can't grow without bound. */
-function sweepIfLarge(now: number): void {
+/**
+ * Drop expired windows once the map gets large. If that alone isn't enough —
+ * e.g. a burst of many distinct keys that are all still within their window,
+ * so none look "expired" yet — fall back to evicting the oldest entries until
+ * we're back under the hard cap. A little early leniency for the oldest keys
+ * is a better trade-off than unbounded memory growth.
+ */
+function sweep(now: number): void {
   if (windows.size < 5000) return;
+
   for (const [key, win] of windows) {
     if (win.resetAt <= now) windows.delete(key);
+  }
+
+  if (windows.size > MAX_TRACKED_KEYS) {
+    const overflow = windows.size - MAX_TRACKED_KEYS;
+    const oldestKeys = Array.from(windows.keys()).slice(0, overflow);
+    for (const key of oldestKeys) windows.delete(key);
   }
 }

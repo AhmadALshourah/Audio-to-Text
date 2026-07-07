@@ -14,12 +14,14 @@ const handleI18nRouting = createIntlMiddleware(routing);
  */
 const PUBLIC_PATHS = ['/', '/sign-in', '/sign-up', '/privacy', '/terms'];
 
-/** Root-level special files that must never go through locale routing. */
-const NON_LOCALIZED_PATHS = ['/sitemap.xml', '/robots.txt'];
+// Built from routing.locales (not hardcoded) so adding a locale can't
+// silently desync the two places below that need to recognize one.
+const LOCALE_PATTERN = routing.locales.join('|');
+const LEADING_LOCALE_RE = new RegExp(`^/(${LOCALE_PATTERN})(/.*)?$`);
 
 /** Strip a leading /en or /ar so path checks are locale-agnostic. */
 function stripLocale(pathname: string): string {
-  const match = pathname.match(/^\/(en|ar)(\/.*)?$/);
+  const match = pathname.match(LEADING_LOCALE_RE);
   if (!match) return pathname;
   return match[2] || '/';
 }
@@ -33,18 +35,18 @@ function isPublic(pathname: string): boolean {
 export default function middleware(req: NextRequest): NextResponse {
   const { pathname } = req.nextUrl;
 
-  // API routes and root-level special files (sitemap, robots) aren't
-  // localized; let them pass straight through, untouched by next-intl's
-  // routing, which would otherwise try to add a locale prefix.
-  if (pathname.startsWith('/api') || NON_LOCALIZED_PATHS.includes(pathname)) {
-    return NextResponse.next();
-  }
+  // API routes aren't localized; let them run and return a real 401 via
+  // requireUserId() rather than the i18n middleware touching them. Root-level
+  // metadata files (sitemap.xml, robots.txt, ...) never reach this middleware
+  // at all — see the `matcher` config below — so no auth/i18n branch is needed
+  // for them here.
+  if (pathname.startsWith('/api')) return NextResponse.next();
 
   if (isPublic(pathname)) return handleI18nRouting(req);
 
   const hasSession = Boolean(req.cookies.get(SESSION_COOKIE)?.value);
   if (!hasSession) {
-    const locale = pathname.match(/^\/(en|ar)/)?.[1] ?? routing.defaultLocale;
+    const locale = pathname.match(LEADING_LOCALE_RE)?.[1] ?? routing.defaultLocale;
     const url = req.nextUrl.clone();
     url.pathname = `/${locale}/sign-in`;
     url.searchParams.set('redirect', pathname);
@@ -55,5 +57,12 @@ export default function middleware(req: NextRequest): NextResponse {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|ico|webp)).*)'],
+  // Excludes Next internals, common image extensions, and any root-level
+  // metadata file (sitemap.xml, robots.txt, manifest.json, etc.) by its file
+  // extension — a general rule, so a *new* metadata file with one of these
+  // extensions is excluded automatically instead of needing a manual update
+  // here every time one is added.
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|ico|webp|xml|txt|json|webmanifest)).*)',
+  ],
 };

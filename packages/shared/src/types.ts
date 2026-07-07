@@ -38,6 +38,54 @@ export const AUDIO_CONSTRAINTS = {
 
 export type SupportedAudioFormat = (typeof AUDIO_CONSTRAINTS.SUPPORTED_FORMATS)[number];
 
+function isSupportedAudioFormat(ext: string): ext is SupportedAudioFormat {
+  return (AUDIO_CONSTRAINTS.SUPPORTED_FORMATS as readonly string[]).includes(ext);
+}
+
+export type AudioUploadIssue =
+  | { code: 'empty_name' }
+  | { code: 'empty_file' }
+  | { code: 'too_large'; maxBytes: number }
+  | { code: 'unsupported_format'; extension: string; supported: readonly string[] };
+
+/**
+ * Pure predicate shared by client and server: the one place the upload rules
+ * (format, size) are actually checked. Server (packages/core/src/validation.ts)
+ * and client (the dashboard dropzone) both call this and layer their own
+ * messaging/i18n on top — so the two can never drift on what's *allowed*.
+ */
+export function checkAudioUpload(
+  fileName: string,
+  sizeBytes: number,
+): { ok: true; extension: SupportedAudioFormat } | { ok: false; issue: AudioUploadIssue } {
+  if (!fileName || fileName.trim().length === 0) {
+    return { ok: false, issue: { code: 'empty_name' } };
+  }
+  if (sizeBytes <= 0) {
+    return { ok: false, issue: { code: 'empty_file' } };
+  }
+  if (sizeBytes > AUDIO_CONSTRAINTS.MAX_FILE_SIZE_BYTES) {
+    return {
+      ok: false,
+      issue: { code: 'too_large', maxBytes: AUDIO_CONSTRAINTS.MAX_FILE_SIZE_BYTES },
+    };
+  }
+
+  const extension = fileName.split('.').pop()?.toLowerCase() ?? '';
+  if (!isSupportedAudioFormat(extension)) {
+    return {
+      ok: false,
+      issue: {
+        code: 'unsupported_format',
+        extension,
+        supported: AUDIO_CONSTRAINTS.SUPPORTED_FORMATS,
+      },
+    };
+  }
+
+  return { ok: true, extension };
+}
+
 /** Max times the polling worker retries a failed transcription before giving up. */
 export const MAX_TRANSCRIPTION_ATTEMPTS = 2;
 

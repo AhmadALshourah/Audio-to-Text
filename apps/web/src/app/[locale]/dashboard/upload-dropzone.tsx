@@ -2,7 +2,11 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { AUDIO_CONSTRAINTS, type SupportedAudioFormat } from '@audio-to-text/shared/types';
+import {
+  AUDIO_CONSTRAINTS,
+  checkAudioUpload,
+  type SupportedAudioFormat,
+} from '@audio-to-text/shared/types';
 import { formatBytes } from '@/lib/format';
 
 interface UploadDropzoneProps {
@@ -10,22 +14,34 @@ interface UploadDropzoneProps {
   disabled: boolean;
 }
 
+/**
+ * Client-side pre-check for instant feedback. Delegates the actual rule
+ * (format/size) to {@link checkAudioUpload} — the same predicate
+ * packages/core/src/validation.ts uses server-side — so the two can never
+ * silently drift; only the messaging differs per side.
+ */
 function validateClientSide(
   file: File,
   t: (key: string, values?: Record<string, string | number>) => string,
 ): string | null {
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-  const supported = AUDIO_CONSTRAINTS.SUPPORTED_FORMATS as readonly string[];
-  if (!supported.includes(ext)) {
-    return t('unsupportedFormat', { ext, formats: AUDIO_CONSTRAINTS.SUPPORTED_FORMATS.join(', ') });
+  const result = checkAudioUpload(file.name, file.size);
+  if (result.ok) return null;
+
+  switch (result.issue.code) {
+    case 'empty_name':
+    case 'empty_file':
+      return t('uploadFailed');
+    case 'too_large':
+      return t('fileTooLarge', {
+        size: formatBytes(file.size),
+        max: formatBytes(result.issue.maxBytes),
+      });
+    case 'unsupported_format':
+      return t('unsupportedFormat', {
+        ext: result.issue.extension,
+        formats: result.issue.supported.join(', '),
+      });
   }
-  if (file.size > AUDIO_CONSTRAINTS.MAX_FILE_SIZE_BYTES) {
-    return t('fileTooLarge', {
-      size: formatBytes(file.size),
-      max: formatBytes(AUDIO_CONSTRAINTS.MAX_FILE_SIZE_BYTES),
-    });
-  }
-  return null;
 }
 
 export function UploadDropzone({ onUpload, disabled }: UploadDropzoneProps) {

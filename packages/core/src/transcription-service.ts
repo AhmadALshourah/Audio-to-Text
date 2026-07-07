@@ -144,6 +144,28 @@ export async function getTranscription(userId: string, id: string): Promise<Tran
 }
 
 /**
+ * Render subtitles for an already-fetched, completed transcription. Pulled out
+ * of {@link getSubtitles} so callers that already hold the record (e.g. the API
+ * route, which also needs it for the filename) don't fetch it a second time.
+ */
+export function renderSubtitles(record: Transcription, format: 'srt' | 'vtt'): string {
+  if (record.status !== 'done') {
+    throw new ValidationError('Subtitles are only available once transcription is done.');
+  }
+
+  let segments: TranscriptSegment[] = [];
+  if (record.segmentsJson) {
+    try {
+      segments = JSON.parse(record.segmentsJson);
+    } catch {
+      throw new ValidationError('Stored subtitle data is corrupted for this transcription.');
+    }
+  }
+
+  return format === 'srt' ? toSrt(segments) : toVtt(segments);
+}
+
+/**
  * Render a completed transcription's subtitles. Throws {@link ValidationError}
  * if the job isn't done yet (ownership is enforced via {@link getTranscription}).
  */
@@ -153,12 +175,7 @@ export async function getSubtitles(
   format: 'srt' | 'vtt',
 ): Promise<string> {
   const record = await getTranscription(userId, id);
-  if (record.status !== 'done') {
-    throw new ValidationError('Subtitles are only available once transcription is done.');
-  }
-
-  const segments: TranscriptSegment[] = record.segmentsJson ? JSON.parse(record.segmentsJson) : [];
-  return format === 'srt' ? toSrt(segments) : toVtt(segments);
+  return renderSubtitles(record, format);
 }
 
 /** List a user's transcriptions, newest first. */

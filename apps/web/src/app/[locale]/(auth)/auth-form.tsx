@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { safeRedirectPath } from '@/lib/safe-redirect';
 
 interface AuthFormProps {
   mode: 'sign-in' | 'sign-up';
@@ -36,7 +37,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       if (!res.ok) {
         throw new Error(data?.error?.message ?? t('genericError'));
       }
-      const redirect = searchParams.get('redirect') || '/dashboard';
+      const redirect = safeRedirectPath(searchParams.get('redirect'), '/dashboard');
       router.push(redirect);
       router.refresh();
     } catch (err) {

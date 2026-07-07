@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSubtitles, getTranscription, ValidationError } from '@audio-to-text/core';
+import { renderSubtitles, getTranscription, ValidationError } from '@audio-to-text/core';
 import { requireUserId } from '@/lib/auth';
 import { withErrorHandling } from '@/lib/api';
 
@@ -20,10 +20,8 @@ export const GET = withErrorHandling(
       throw new ValidationError('Query param "format" must be "srt" or "vtt".');
     }
 
-    const [record, body] = await Promise.all([
-      getTranscription(userId, params.id),
-      getSubtitles(userId, params.id, format),
-    ]);
+    const record = await getTranscription(userId, params.id);
+    const body = renderSubtitles(record, format);
 
     const baseName = record.fileName.replace(/\.[^/.]+$/, '');
 
