@@ -1,5 +1,9 @@
 import { prisma, type Transcription } from '@audio-to-text/db';
-import { MAX_TRANSCRIPTION_ATTEMPTS, type TranscriptSegment } from '@audio-to-text/shared';
+import {
+  MAX_TRANSCRIPTION_ATTEMPTS,
+  STALE_PROCESSING_MS,
+  type TranscriptSegment,
+} from '@audio-to-text/shared';
 import { NotFoundError, ValidationError } from './errors.js';
 import { validateAudioUpload, assertAudioContent } from './validation.js';
 import { assertQuotaAvailable } from './quota.js';
@@ -75,6 +79,45 @@ export async function claimNextTranscription(): Promise<Transcription | null> {
 }
 
 /**
+ * Reclaim jobs stuck in `processing` because the worker that claimed them
+ * died mid-job (crash, OOM, hard kill) without ever reaching the success or
+ * failure path in {@link processTranscription} — which is the only place a
+ * `processing` row would otherwise move on. Anything still `processing` past
+ * {@link STALE_PROCESSING_MS} is put back to `pending` so another worker pass
+ * can retry it (or give up, once {@link MAX_TRANSCRIPTION_ATTEMPTS} is hit, the
+ * same as any other failure). Returns the number of jobs reclaimed.
+ */
+export async function reclaimStaleProcessingJobs(): Promise<number> {
+  const staleBefore = new Date(Date.now() - STALE_PROCESSING_MS);
+  const errorMessage = 'Reclaimed after an interrupted processing attempt (worker did not finish).';
+
+  const stale = await prisma.transcription.findMany({
+    where: { status: 'processing', updatedAt: { lt: staleBefore } },
+  });
+
+  let reclaimed = 0;
+  for (const job of stale) {
+    const giveUp = job.attempts >= MAX_TRANSCRIPTION_ATTEMPTS;
+
+    // Conditional update guards against a race with the worker that actually
+    // holds the job finishing (and moving it off `processing`) at this exact
+    // moment — same pattern as claimNextTranscription's claim.
+    const result = await prisma.transcription.updateMany({
+      where: { id: job.id, status: 'processing' },
+      data: giveUp
+        ? { status: 'failed', errorMessage, audioPath: null }
+        : { status: 'pending', errorMessage },
+    });
+    if (result.count === 0) continue;
+
+    if (giveUp && job.audioPath) await deleteAudio(job.audioPath);
+    reclaimed++;
+  }
+
+  return reclaimed;
+}
+
+/**
  * Run Whisper on a claimed transcription, then atomically persist the result
  * and log usage, and delete the stored audio (we keep only the text). On
  * failure, either requeue for another attempt (back to `pending`) or mark it
@@ -138,7 +181,7 @@ export async function processTranscription(record: Transcription): Promise<Trans
 export async function getTranscription(userId: string, id: string): Promise<Transcription> {
   const record = await prisma.transcription.findUnique({ where: { id } });
   if (!record || record.userId !== userId) {
-    throw new NotFoundError('Transcription not found');
+    throw new NotFoundError('Transcription not found', 'transcription/not_found');
   }
   return record;
 }
@@ -150,7 +193,10 @@ export async function getTranscription(userId: string, id: string): Promise<Tran
  */
 export function renderSubtitles(record: Transcription, format: 'srt' | 'vtt'): string {
   if (record.status !== 'done') {
-    throw new ValidationError('Subtitles are only available once transcription is done.');
+    throw new ValidationError(
+      'Subtitles are only available once transcription is done.',
+      'transcription/not_done',
+    );
   }
 
   let segments: TranscriptSegment[] = [];
@@ -158,7 +204,10 @@ export function renderSubtitles(record: Transcription, format: 'srt' | 'vtt'): s
     try {
       segments = JSON.parse(record.segmentsJson);
     } catch {
-      throw new ValidationError('Stored subtitle data is corrupted for this transcription.');
+      throw new ValidationError(
+        'Stored subtitle data is corrupted for this transcription.',
+        'transcription/corrupted_subtitles',
+      );
     }
   }
 
@@ -178,14 +227,37 @@ export async function getSubtitles(
   return renderSubtitles(record, format);
 }
 
-/** List a user's transcriptions, newest first. */
+export interface TranscriptionPage {
+  items: Transcription[];
+  /** Id to pass as `cursor` to fetch the next page; null once there are no more. */
+  nextCursor: string | null;
+}
+
+const DEFAULT_PAGE_SIZE = 50;
+
+/**
+ * List a user's transcriptions, newest first, one page at a time. Without
+ * this, a user with more than one page's worth would have older
+ * transcriptions permanently unreachable through the UI (they'd still exist
+ * in the DB — a fixed `take` with no cursor just never asks for the rest).
+ * `createdAt` alone isn't a safe cursor key (two rows can share a timestamp),
+ * so ordering and paging both also key on `id`.
+ */
 export async function listTranscriptions(
   userId: string,
-  opts: { limit?: number } = {},
-): Promise<Transcription[]> {
-  return prisma.transcription.findMany({
+  opts: { limit?: number; cursor?: string } = {},
+): Promise<TranscriptionPage> {
+  const limit = opts.limit ?? DEFAULT_PAGE_SIZE;
+
+  const rows = await prisma.transcription.findMany({
     where: { userId },
-    orderBy: { createdAt: 'desc' },
-    take: opts.limit ?? 50,
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: limit + 1, // one extra, to detect whether a next page exists
+    ...(opts.cursor ? { cursor: { id: opts.cursor }, skip: 1 } : {}),
   });
+
+  const hasMore = rows.length > limit;
+  const items = hasMore ? rows.slice(0, limit) : rows;
+
+  return { items, nextCursor: hasMore ? items[items.length - 1]!.id : null };
 }

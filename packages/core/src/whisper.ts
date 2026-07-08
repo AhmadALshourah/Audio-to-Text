@@ -5,12 +5,21 @@ import { TranscriptionError } from './errors.js';
 /** OpenAI Whisper pricing: $0.006 per minute of audio. */
 const WHISPER_USD_PER_MINUTE = 0.006;
 
+/**
+ * Explicit request timeout, tuned for our use case rather than left at the
+ * SDK's own default. Files are capped at 25 MB (AUDIO_CONSTRAINTS), which
+ * Whisper transcribes well within this window even under load; bounding it
+ * matters because a single hung request would otherwise occupy the worker's
+ * only processing slot indefinitely, delaying every job queued behind it.
+ */
+const WHISPER_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes
+
 let client: OpenAI | undefined;
 
 /** Lazily create the OpenAI client so importing this module never requires the
  * key to be present (e.g. during `next build`). Reads OPENAI_API_KEY from env. */
 function getClient(): OpenAI {
-  client ??= new OpenAI();
+  client ??= new OpenAI({ timeout: WHISPER_TIMEOUT_MS });
   return client;
 }
 

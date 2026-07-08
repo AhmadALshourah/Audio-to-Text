@@ -10,6 +10,17 @@ const CONTENT_TYPES = {
   vtt: 'text/vtt',
 } as const;
 
+/**
+ * `fileName` is the user-supplied original upload name, stored as-is and
+ * untrusted. Strip control characters (CR/LF included, which could otherwise
+ * split the response into extra headers) and quotes/backslashes (which could
+ * break out of the `filename="..."` parameter) before it goes into a header.
+ */
+function sanitizeFilenamePart(name: string): string {
+  const cleaned = name.replace(/[\x00-\x1f\x7f"\\]/g, '').trim();
+  return cleaned.length > 0 ? cleaned : 'transcript';
+}
+
 /** GET /api/transcriptions/:id/subtitles?format=srt|vtt — download subtitles for a completed job. */
 export const GET = withErrorHandling(
   async (request: Request, { params }: { params: { id: string } }) => {
@@ -23,7 +34,7 @@ export const GET = withErrorHandling(
     const record = await getTranscription(userId, params.id);
     const body = renderSubtitles(record, format);
 
-    const baseName = record.fileName.replace(/\.[^/.]+$/, '');
+    const baseName = sanitizeFilenamePart(record.fileName.replace(/\.[^/.]+$/, ''));
 
     return new NextResponse(body, {
       headers: {

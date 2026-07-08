@@ -44,9 +44,15 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   return NextResponse.json(serializeTranscription(transcription), { status: 202 });
 });
 
-/** GET /api/transcriptions — list the current user's transcriptions. */
-export const GET = withErrorHandling(async () => {
+/**
+ * GET /api/transcriptions — list the current user's transcriptions, one page
+ * at a time. Pass `?cursor=<id>` (from a previous response's `nextCursor`) to
+ * fetch the next page.
+ */
+export const GET = withErrorHandling(async (request: NextRequest) => {
   const userId = await requireUserId();
-  const items = await listTranscriptions(userId);
-  return NextResponse.json({ items: items.map(serializeTranscription) });
+  const cursor = request.nextUrl.searchParams.get('cursor') ?? undefined;
+
+  const { items, nextCursor } = await listTranscriptions(userId, { cursor });
+  return NextResponse.json({ items: items.map(serializeTranscription), nextCursor });
 });

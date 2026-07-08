@@ -2,6 +2,13 @@ import createIntlMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { routing } from '@/i18n/routing';
 import { SESSION_COOKIE } from '@/lib/session-cookie';
+// Imported for its module-load-time side effect: `apps/web/src/env.ts` calls
+// `parseEnv` at the top level. Middleware matches almost every request and
+// loads once at server start, so this is the earliest point that reliably
+// runs for every request path — the closest thing this app has to a startup
+// hook — making a missing/invalid env var fail fast instead of surfacing as
+// a confusing runtime error deep inside a route handler.
+import '@/env';
 
 const handleI18nRouting = createIntlMiddleware(routing);
 
@@ -12,7 +19,16 @@ const handleI18nRouting = createIntlMiddleware(routing);
  * validation (token → user, expiry) happens server-side in requireUserId()
  * on the protected page/route.
  */
-const PUBLIC_PATHS = ['/', '/sign-in', '/sign-up', '/privacy', '/terms'];
+const PUBLIC_PATHS = [
+  '/',
+  '/sign-in',
+  '/sign-up',
+  '/forgot-password',
+  '/reset-password',
+  '/verify-email',
+  '/privacy',
+  '/terms',
+];
 
 // Built from routing.locales (not hardcoded) so adding a locale can't
 // silently desync the two places below that need to recognize one.

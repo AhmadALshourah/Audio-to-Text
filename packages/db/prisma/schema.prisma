@@ -21,19 +21,53 @@ datasource db {
 /// An authenticated user. Auth is self-built (no external provider):
 /// `passwordHash` is a scrypt hash, sessions live in the Session table.
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String?
-  passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  passwordHash    String
+  // Null until the address is confirmed via a verification link. Informational
+  // only — nothing is gated on this (a typo'd email just won't verify).
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  subscription   Subscription?
-  transcriptions Transcription[]
-  usageLogs      UsageLog[]
-  sessions       Session[]
+  subscription            Subscription?
+  transcriptions          Transcription[]
+  usageLogs               UsageLog[]
+  sessions                Session[]
+  passwordResetTokens     PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
 
   @@index([createdAt])
+}
+
+/// A one-time password-reset token. The raw value is emailed to the user;
+/// only its SHA-256 hash is stored (same pattern as Session's tokenHash), so
+/// a database leak never exposes a usable reset link. Single-use: deleted
+/// once consumed (or once superseded by a newer request).
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// A one-time email-verification token, sent on signup and whenever a user
+/// changes their email. Same tokenHash-only-storage pattern as
+/// PasswordResetToken. Single-use: deleted once consumed or superseded.
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 /// A logged-in session. The cookie holds a random token; we store only its

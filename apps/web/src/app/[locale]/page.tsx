@@ -88,7 +88,7 @@ async function Hero({ signedIn }: { signedIn: boolean }) {
         </div>
       </Reveal>
       <Reveal delay={0.22}>
-        <p className="text-xs text-ink/40">
+        <p className="text-xs text-ink/65">
           {t('freeNote', { minutes: PLAN_MONTHLY_MINUTES.free })}
         </p>
       </Reveal>
@@ -188,7 +188,7 @@ async function Pricing({ signedIn }: { signedIn: boolean }) {
             <div>
               <h3 className="font-semibold">{t('planName')}</h3>
               <p className="mt-1 text-3xl font-bold">
-                $0<span className="text-sm font-normal text-ink/50"> {t('perMonth')}</span>
+                $0<span className="text-sm font-normal text-ink/70"> {t('perMonth')}</span>
               </p>
             </div>
             <ul className="flex flex-col gap-2 text-sm text-ink/60">
@@ -235,7 +235,7 @@ async function Footer() {
   const tFooter = await getTranslations('footer');
   return (
     <footer className="border-t border-ink/10">
-      <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-6 py-8 text-xs text-ink/40 sm:flex-row">
+      <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-6 py-8 text-xs text-ink/65 sm:flex-row">
         <span>{tFooter('copyright', { year: new Date().getFullYear() })}</span>
         <div className="flex gap-4">
           <a href="#how-it-works" className="hover:text-ink/60">

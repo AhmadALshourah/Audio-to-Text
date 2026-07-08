@@ -1,9 +1,64 @@
-import { claimNextTranscription, processTranscription } from '@audio-to-text/core';
+import {
+  claimNextTranscription,
+  processTranscription,
+  reclaimStaleProcessingJobs,
+  cleanupExpiredAuthRecords,
+} from '@audio-to-text/core';
 import { createLogger, logger } from '@audio-to-text/shared/logger';
 import { env } from './env.js';
 
 /** How long to wait before polling again when the queue is empty. */
 const IDLE_POLL_MS = 2000;
+
+/**
+ * How often to sweep for jobs stuck in `processing` because the worker that
+ * claimed them died mid-job. Runs on every loop iteration once due, regardless
+ * of whether there was other work — a dead worker means no other loop is
+ * generating activity that would otherwise trigger this.
+ */
+const RECLAIM_INTERVAL_MS = 5 * 60 * 1000;
+let lastReclaimAt = 0;
+
+async function reclaimIfDue(): Promise<void> {
+  if (Date.now() - lastReclaimAt < RECLAIM_INTERVAL_MS) return;
+  lastReclaimAt = Date.now();
+
+  try {
+    const count = await reclaimStaleProcessingJobs();
+    if (count > 0) {
+      logger.warn('Reclaimed stale processing jobs', { count });
+    }
+  } catch (err) {
+    logger.error('Failed to reclaim stale processing jobs', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+/**
+ * How often to sweep expired sessions and password-reset/email-verification
+ * tokens. These are otherwise only ever cleaned up lazily (a session is
+ * deleted only when someone tries to use an expired one), so an abandoned
+ * browser or an unclicked email link leaves a row behind forever.
+ */
+const AUTH_CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+let lastAuthCleanupAt = 0;
+
+async function cleanupAuthRecordsIfDue(): Promise<void> {
+  if (Date.now() - lastAuthCleanupAt < AUTH_CLEANUP_INTERVAL_MS) return;
+  lastAuthCleanupAt = Date.now();
+
+  try {
+    const count = await cleanupExpiredAuthRecords();
+    if (count > 0) {
+      logger.info('Cleaned up expired sessions/tokens', { count });
+    }
+  } catch (err) {
+    logger.error('Failed to clean up expired sessions/tokens', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
 
 /** Rolling window used to flag an unusually high failure rate or cost. */
 const ANOMALY_WINDOW_SIZE = 10;
@@ -38,6 +93,8 @@ async function loop(): Promise<void> {
   while (running) {
     let didWork = false;
     try {
+      await reclaimIfDue();
+      await cleanupAuthRecordsIfDue();
       const job = await claimNextTranscription();
       if (job) {
         didWork = true;

@@ -69,6 +69,7 @@ export function UploadDropzone({ onUpload, disabled }: UploadDropzoneProps) {
       <div
         role="button"
         tabIndex={0}
+        aria-disabled={disabled}
         onClick={() => !disabled && inputRef.current?.click()}
         onKeyDown={(e) => {
           if (!disabled && (e.key === 'Enter' || e.key === ' ')) inputRef.current?.click();
@@ -86,7 +87,7 @@ export function UploadDropzone({ onUpload, disabled }: UploadDropzoneProps) {
           setDragActive(false);
           if (!disabled) void processFile(e.dataTransfer.files[0]);
         }}
-        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-10 text-center transition-colors ${
+        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-10 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
           disabled
             ? 'cursor-not-allowed border-ink/10 bg-paper-soft text-ink/30'
             : dragActive
@@ -95,7 +96,7 @@ export function UploadDropzone({ onUpload, disabled }: UploadDropzoneProps) {
         }`}
       >
         <p className="font-medium">{disabled ? t('dropzoneBusy') : t('dropzoneIdle')}</p>
-        <p className="text-sm text-ink/50">
+        <p className="text-sm text-ink/70">
           {AUDIO_CONSTRAINTS.SUPPORTED_FORMATS.join(', ')} · {t('dropzoneMax')}{' '}
           {formatBytes(AUDIO_CONSTRAINTS.MAX_FILE_SIZE_BYTES)}
         </p>

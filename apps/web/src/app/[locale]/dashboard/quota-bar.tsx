@@ -15,7 +15,7 @@ export function QuotaBar({ quota }: { quota: QuotaStatus }) {
         <span className="font-medium">
           {planLabel} {t('planSuffix')}
         </span>
-        <span className="text-ink/50">
+        <span className="text-ink/70">
           {t('quotaUsed', {
             used: quota.usedMinutes.toFixed(1),
             limit: quota.limitMinutes,

@@ -11,7 +11,7 @@ export function toErrorResponse(err: unknown): NextResponse {
     const headers =
       err instanceof RateLimitError ? { 'Retry-After': String(err.retryAfterSeconds) } : undefined;
     return NextResponse.json(
-      { error: { code: err.code, message: err.message } },
+      { error: { code: err.code, message: err.message, params: err.params } },
       { status: err.status, headers },
     );
   }

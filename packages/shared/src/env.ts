@@ -12,6 +12,16 @@ export const openaiEnvSchema = z.object({
   OPENAI_API_KEY: z.string().min(1, 'OPENAI_API_KEY is required'),
 });
 
+/**
+ * Resend — the second (and only other) external dependency, used solely for
+ * transactional email (password reset, email verification). Only the web app
+ * sends email, so this is not merged into the worker's env schema.
+ */
+export const resendEnvSchema = z.object({
+  RESEND_API_KEY: z.string().min(1, 'RESEND_API_KEY is required'),
+  EMAIL_FROM: z.string().min(1, 'EMAIL_FROM is required'),
+});
+
 export const databaseEnvSchema = z.object({
   // SQLite file URL, e.g. file:./dev.db (not a network URL, so not .url()).
   DATABASE_URL: z.string().min(1),
@@ -20,6 +30,28 @@ export const databaseEnvSchema = z.object({
 export const appEnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+});
+
+/**
+ * POSIX absolute (`/…`), Windows drive-letter (`C:\…` or `C:/…`), or UNC
+ * (`\\server\share`). Deliberately not `node:path`'s `isAbsolute` — this
+ * schema needs to stay loadable outside Node (e.g. Next.js Edge middleware,
+ * which fails to bundle `node:path`).
+ */
+function isAbsolutePath(value: string): boolean {
+  return /^(\/|[a-zA-Z]:[\\/]|\\\\)/.test(value);
+}
+
+/**
+ * Required (no default) and must be absolute: web and worker run as separate
+ * processes, so a relative path would resolve against whatever each
+ * process's cwd happens to be and silently diverge between them.
+ */
+export const uploadsEnvSchema = z.object({
+  UPLOADS_DIR: z
+    .string()
+    .min(1, 'UPLOADS_DIR is required')
+    .refine(isAbsolutePath, 'UPLOADS_DIR must be an absolute path'),
 });
 
 /**

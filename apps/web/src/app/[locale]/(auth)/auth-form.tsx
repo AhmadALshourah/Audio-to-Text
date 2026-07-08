@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { safeRedirectPath } from '@/lib/safe-redirect';
+import { useApiErrorMessage } from '@/lib/api-error';
 
 interface AuthFormProps {
   mode: 'sign-in' | 'sign-up';
@@ -12,6 +13,8 @@ interface AuthFormProps {
 
 export function AuthForm({ mode }: AuthFormProps) {
   const t = useTranslations('auth');
+  const locale = useLocale();
+  const translateApiError = useApiErrorMessage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
@@ -31,11 +34,13 @@ export function AuthForm({ mode }: AuthFormProps) {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(isSignUp ? { email, password, name } : { email, password }),
+        body: JSON.stringify(
+          isSignUp ? { email, password, name, locale } : { email, password },
+        ),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data?.error?.message ?? t('genericError'));
+        throw new Error(translateApiError(data?.error, t('genericError')));
       }
       const redirect = safeRedirectPath(searchParams.get('redirect'), '/dashboard');
       router.push(redirect);
@@ -51,7 +56,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       <h1 className="font-display text-2xl font-semibold tracking-tight">
         {isSignUp ? t('signUpTitle') : t('signInTitle')}
       </h1>
-      <p className="mt-1 text-sm text-ink/50">
+      <p className="mt-1 text-sm text-ink/70">
         {isSignUp ? t('signUpSubtitle') : t('signInSubtitle')}
       </p>
 
@@ -73,6 +78,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           <input
             type="email"
             required
+            maxLength={254}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="rounded-md border border-ink/20 bg-paper px-3 py-2 outline-none focus:border-accent"
@@ -80,17 +86,25 @@ export function AuthForm({ mode }: AuthFormProps) {
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">{t('passwordLabel')}</span>
+          <span className="flex items-center justify-between font-medium">
+            {t('passwordLabel')}
+            {!isSignUp && (
+              <Link href="/forgot-password" className="text-xs font-normal underline text-ink/70">
+                {t('forgotPassword')}
+              </Link>
+            )}
+          </span>
           <input
             type="password"
             required
             minLength={8}
+            maxLength={128}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="rounded-md border border-ink/20 bg-paper px-3 py-2 outline-none focus:border-accent"
             autoComplete={isSignUp ? 'new-password' : 'current-password'}
           />
-          {isSignUp && <span className="text-xs text-ink/40">{t('passwordHint')}</span>}
+          {isSignUp && <span className="text-xs text-ink/65">{t('passwordHint')}</span>}
         </label>
 
         {isSignUp && (

@@ -15,7 +15,8 @@
   "dependencies": {
     "@audio-to-text/db": "workspace:*",
     "@audio-to-text/shared": "workspace:*",
-    "openai": "^4.56.0"
+    "openai": "^4.56.0",
+    "resend": "^6.17.1"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

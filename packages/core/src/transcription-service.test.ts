@@ -14,8 +14,11 @@ import {
   claimNextTranscription,
   processTranscription,
   getSubtitles,
+  reclaimStaleProcessingJobs,
+  listTranscriptions,
 } from './transcription-service.js';
 import { ValidationError } from './errors.js';
+import { STALE_PROCESSING_MS, MAX_TRANSCRIPTION_ATTEMPTS } from '@audio-to-text/shared';
 
 const mockTranscribe = vi.mocked(transcribeAudio);
 
@@ -209,5 +212,119 @@ describe('transcription-service', () => {
     const vtt = await getSubtitles(userId, record.id, 'vtt');
     expect(vtt.startsWith('WEBVTT')).toBe(true);
     expect(vtt).toContain('00:00:00.000 --> 00:00:02.000');
+  });
+
+  describe('reclaimStaleProcessingJobs', () => {
+    const staleTimestamp = () => new Date(Date.now() - STALE_PROCESSING_MS - 60_000);
+
+    it('requeues a stuck processing job back to pending when attempts remain', async () => {
+      const record = await createTranscription(
+        userId,
+        { fileName: 'stuck-retry.wav', sizeBytes: 44 },
+        wavBuffer(),
+      );
+      await prisma.transcription.update({
+        where: { id: record.id },
+        data: { status: 'processing', attempts: 1, updatedAt: staleTimestamp() },
+      });
+
+      const count = await reclaimStaleProcessingJobs();
+      expect(count).toBe(1);
+
+      const after = await prisma.transcription.findUniqueOrThrow({ where: { id: record.id } });
+      expect(after.status).toBe('pending');
+      expect(after.errorMessage).toContain('Reclaimed');
+      // Audio must survive — a future attempt still needs it.
+      expect(existsSync(record.audioPath!)).toBe(true);
+    });
+
+    it('permanently fails and deletes audio for a stuck job that already exhausted attempts', async () => {
+      const record = await createTranscription(
+        userId,
+        { fileName: 'stuck-giveup.wav', sizeBytes: 44 },
+        wavBuffer(),
+      );
+      await prisma.transcription.update({
+        where: { id: record.id },
+        data: {
+          status: 'processing',
+          attempts: MAX_TRANSCRIPTION_ATTEMPTS,
+          updatedAt: staleTimestamp(),
+        },
+      });
+
+      const count = await reclaimStaleProcessingJobs();
+      expect(count).toBe(1);
+
+      const after = await prisma.transcription.findUniqueOrThrow({ where: { id: record.id } });
+      expect(after.status).toBe('failed');
+      expect(after.audioPath).toBeNull();
+      expect(existsSync(record.audioPath!)).toBe(false);
+    });
+
+    it('leaves a recently-updated processing job alone', async () => {
+      const record = await createTranscription(
+        userId,
+        { fileName: 'fresh.wav', sizeBytes: 44 },
+        wavBuffer(),
+      );
+      await prisma.transcription.update({
+        where: { id: record.id },
+        data: { status: 'processing', attempts: 1 }, // updatedAt bumps to "now"
+      });
+
+      const count = await reclaimStaleProcessingJobs();
+      expect(count).toBe(0);
+
+      const after = await prisma.transcription.findUniqueOrThrow({ where: { id: record.id } });
+      expect(after.status).toBe('processing');
+    });
+  });
+
+  describe('listTranscriptions', () => {
+    it('pages through results newest-first with a cursor, and reports no next page at the end', async () => {
+      // Deliberately out of creation order — createdAt is set explicitly so
+      // the "newest first" ordering is actually exercised, not just creation order.
+      const base = Date.now();
+      for (let i = 0; i < 5; i++) {
+        await prisma.transcription.create({
+          data: {
+            userId,
+            status: 'done',
+            fileName: `page-${i}.wav`,
+            fileSizeBytes: 44,
+            createdAt: new Date(base + i * 1000),
+          },
+        });
+      }
+
+      const firstPage = await listTranscriptions(userId, { limit: 2 });
+      expect(firstPage.items.map((t) => t.fileName)).toEqual(['page-4.wav', 'page-3.wav']);
+      expect(firstPage.nextCursor).toBeTruthy();
+
+      const secondPage = await listTranscriptions(userId, {
+        limit: 2,
+        cursor: firstPage.nextCursor!,
+      });
+      expect(secondPage.items.map((t) => t.fileName)).toEqual(['page-2.wav', 'page-1.wav']);
+      expect(secondPage.nextCursor).toBeTruthy();
+
+      const thirdPage = await listTranscriptions(userId, {
+        limit: 2,
+        cursor: secondPage.nextCursor!,
+      });
+      expect(thirdPage.items.map((t) => t.fileName)).toEqual(['page-0.wav']);
+      expect(thirdPage.nextCursor).toBeNull();
+    });
+
+    it('reports no next page when everything fits in one page', async () => {
+      await prisma.transcription.create({
+        data: { userId, status: 'done', fileName: 'only-one.wav', fileSizeBytes: 44 },
+      });
+
+      const page = await listTranscriptions(userId, { limit: 50 });
+      expect(page.items).toHaveLength(1);
+      expect(page.nextCursor).toBeNull();
+    });
   });
 });

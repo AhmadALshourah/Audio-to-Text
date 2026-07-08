@@ -25,7 +25,7 @@ export async function LegalPage({ title, lastUpdated, children }: LegalPageProps
 
       <main className="mx-auto max-w-3xl px-6 pb-24 pt-8">
         <h1 className="font-display text-3xl font-semibold tracking-tight">{title}</h1>
-        <p className="mt-2 text-sm text-ink/40">
+        <p className="mt-2 text-sm text-ink/65">
           {t('lastUpdated')}: {lastUpdated}
         </p>
 

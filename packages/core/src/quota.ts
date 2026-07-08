@@ -1,4 +1,4 @@
-import { prisma } from '@audio-to-text/db';
+import { prisma, type Subscription } from '@audio-to-text/db';
 import {
   PLAN_MONTHLY_MINUTES,
   toSubscriptionPlan,
@@ -14,13 +14,41 @@ export interface QuotaStatus {
 }
 
 /**
+ * If the subscription's billing period has lapsed (possibly more than once,
+ * e.g. after months of inactivity), roll `currentPeriodStart`/`currentPeriodEnd`
+ * forward to the period that contains "now" and persist it. Without this, a
+ * free user's "30 minutes per month" would really be "30 minutes, once,
+ * ever" — the period was previously only ever set at signup and never moved.
+ */
+async function rollSubscriptionPeriod(subscription: Subscription): Promise<Subscription> {
+  const now = new Date();
+  if (subscription.currentPeriodEnd > now) return subscription;
+
+  let periodStart = subscription.currentPeriodStart;
+  let periodEnd = subscription.currentPeriodEnd;
+  while (periodEnd <= now) {
+    periodStart = periodEnd;
+    periodEnd = addOneMonth(periodEnd);
+  }
+
+  return prisma.subscription.update({
+    where: { id: subscription.id },
+    data: { currentPeriodStart: periodStart, currentPeriodEnd: periodEnd },
+  });
+}
+
+/**
  * Compute a user's transcription usage for their current billing period.
  * Usage is the sum of UsageLog seconds since the subscription's period start.
  */
 export async function getQuotaStatus(userId: string): Promise<QuotaStatus> {
-  const subscription = await prisma.subscription.findUnique({
+  let subscription = await prisma.subscription.findUnique({
     where: { userId },
   });
+
+  if (subscription) {
+    subscription = await rollSubscriptionPeriod(subscription);
+  }
 
   // A user without a subscription row is treated as a free plan with a fresh period.
   const plan: SubscriptionPlan = toSubscriptionPlan(subscription?.plan);
@@ -52,6 +80,7 @@ export async function assertQuotaAvailable(userId: string): Promise<void> {
   if (remainingMinutes <= 0) {
     throw new QuotaExceededError(
       `You have used your full monthly allowance of ${limitMinutes} minutes. Upgrade to continue.`,
+      { limitMinutes },
     );
   }
 }
@@ -59,6 +88,12 @@ export async function assertQuotaAvailable(userId: string): Promise<void> {
 function startOfCurrentMonth(): Date {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), 1);
+}
+
+function addOneMonth(date: Date): Date {
+  const next = new Date(date);
+  next.setMonth(next.getMonth() + 1);
+  return next;
 }
 
 function round2(value: number): number {

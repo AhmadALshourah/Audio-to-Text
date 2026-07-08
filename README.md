@@ -6,7 +6,8 @@ A self-contained SaaS that transcribes audio to text using the OpenAI Whisper
 API — sign up, upload a file, get a transcript with SRT/VTT subtitles, in
 English or Arabic (RTL), all backed by nothing but a local SQLite file and
 the filesystem. No cloud database, no external auth provider, no managed
-queue.
+queue — Resend is the only other external service, used solely for
+transactional email (password reset, email verification).
 
 > **Status:** under active development — see [`phases.md`](./phases.md) for the full roadmap.
 
@@ -44,9 +45,13 @@ Audio-to-Text/
 - **Self-built auth** — email + password, hashed with Node's built-in `scrypt`
   (`packages/shared/src/crypto.ts`), sessions are a random token whose SHA-256
   hash is stored server-side (`Session` table) and set as an httpOnly cookie.
-  No third-party auth provider. Users can permanently delete their own
-  account (and everything derived from it) from the dashboard — see the
-  in-app `/privacy` page for exactly what that removes.
+  No third-party auth provider. From the dashboard, users can change their
+  password or email, and permanently delete their own account (and everything
+  derived from it) — see the in-app `/privacy` page for exactly what that
+  removes. Forgotten passwords are reset via a one-time emailed link
+  (`/forgot-password`, `/reset-password`), and a new signup or email change
+  sends a one-time confirmation link (`/verify-email`) — both powered by
+  Resend, the only other external dependency besides OpenAI.
 - **Local filesystem for audio** — files are written to `data/uploads/` on
   upload, read once by the worker, and deleted immediately after processing
   (success or permanent failure). Only the transcribed text is kept long-term.
@@ -72,7 +77,8 @@ Audio-to-Text/
 | Database        | SQLite + Prisma                                            |
 | Job processing  | Custom polling worker (atomic claim, no external queue)    |
 | File storage    | Local filesystem, deleted after processing                 |
-| Transcription   | OpenAI Whisper (`whisper-1`) — the only external dependency |
+| Transcription   | OpenAI Whisper (`whisper-1`)                                |
+| Email           | Resend — password reset + email verification only          |
 | Export          | Plain text, plus SRT/VTT subtitles with real timestamps    |
 | Payments        | None — free-only by design (see `phases.md`, Phase 9)       |
 
@@ -84,7 +90,13 @@ pnpm install
 
 # 2. Configure environment
 cp .env.example .env
-#   ...fill in OPENAI_API_KEY and an absolute UPLOADS_DIR path (see .env.example)
+#   ...fill in OPENAI_API_KEY, RESEND_API_KEY + EMAIL_FROM, and an absolute
+#   UPLOADS_DIR path (see .env.example). UPLOADS_DIR must already exist (or
+#   be creatable) and be writable by the process — both web and worker create
+#   it with `mkdir -p` on first upload, but a path they can't create or write
+#   to (e.g. a read-only mount) fails confusingly at upload time rather than
+#   at startup. Password reset / email verification won't actually deliver
+#   mail until RESEND_API_KEY is a real key.
 
 # 3. Create the SQLite database
 pnpm --filter @audio-to-text/db db:push

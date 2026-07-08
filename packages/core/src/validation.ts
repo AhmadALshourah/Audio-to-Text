@@ -20,16 +20,20 @@ export function validateAudioUpload({ fileName, sizeBytes }: AudioUploadInput): 
 
   switch (result.issue.code) {
     case 'empty_name':
-      throw new ValidationError('A file name is required.');
+      throw new ValidationError('A file name is required.', 'upload/empty_name');
     case 'empty_file':
-      throw new ValidationError('The uploaded file is empty.');
-    case 'too_large':
-      throw new ValidationError(
-        `File too large. Maximum size is ${result.issue.maxBytes / 1024 / 1024} MB.`,
-      );
+      throw new ValidationError('The uploaded file is empty.', 'upload/empty_file');
+    case 'too_large': {
+      const maxMb = result.issue.maxBytes / 1024 / 1024;
+      throw new ValidationError(`File too large. Maximum size is ${maxMb} MB.`, 'upload/too_large', {
+        maxMb,
+      });
+    }
     case 'unsupported_format':
       throw new ValidationError(
         `Unsupported format ".${result.issue.extension}". Supported: ${result.issue.supported.join(', ')}.`,
+        'upload/unsupported_format',
+        { extension: result.issue.extension, supported: result.issue.supported.join(', ') },
       );
   }
 }
@@ -68,6 +72,9 @@ export function looksLikeAudio(buffer: Buffer): boolean {
 /** Throw {@link ValidationError} if the bytes don't look like supported audio. */
 export function assertAudioContent(buffer: Buffer): void {
   if (!looksLikeAudio(buffer)) {
-    throw new ValidationError('This file does not appear to be a supported audio file.');
+    throw new ValidationError(
+      'This file does not appear to be a supported audio file.',
+      'upload/not_audio',
+    );
   }
 }

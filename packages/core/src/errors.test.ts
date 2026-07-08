@@ -47,4 +47,19 @@ describe('typed domain errors', () => {
   it('each error carries a custom message when given one', () => {
     expect(new NotFoundError('specific message').message).toBe('specific message');
   });
+
+  it('accepts a granular per-instance code, for client-side i18n lookup', () => {
+    const err = new ValidationError('Please enter a valid email address.', 'auth/invalid_email');
+    expect(err.code).toBe('auth/invalid_email');
+    expect(err.status).toBe(400);
+  });
+
+  it('carries optional params for message interpolation', () => {
+    const err = new QuotaExceededError('You have used 30 minutes.', { limitMinutes: 30 });
+    expect(err.params).toEqual({ limitMinutes: 30 });
+  });
+
+  it('leaves params undefined when none are given', () => {
+    expect(new ValidationError('bad input').params).toBeUndefined();
+  });
 });

@@ -89,6 +89,15 @@ export function checkAudioUpload(
 /** Max times the polling worker retries a failed transcription before giving up. */
 export const MAX_TRANSCRIPTION_ATTEMPTS = 2;
 
+/**
+ * If a job has been sitting in `processing` longer than this with no update,
+ * assume the worker that claimed it died (crash, OOM, SIGKILL) and reclaim it
+ * back to `pending` so another attempt can pick it up. Well above any
+ * realistic Whisper turnaround time for a 25 MB file, to avoid reclaiming a
+ * job that's still genuinely being worked on.
+ */
+export const STALE_PROCESSING_MS = 15 * 60 * 1000;
+
 /** One timed chunk of a transcript, as returned by Whisper's verbose_json response. */
 export interface TranscriptSegment {
   start: number;

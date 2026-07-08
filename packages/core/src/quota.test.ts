@@ -68,3 +68,84 @@ describe('quota', () => {
     await expect(assertQuotaAvailable(userId)).rejects.toThrow(QuotaExceededError);
   });
 });
+
+describe('quota period rollover', () => {
+  let userId: string;
+
+  afterAll(async () => {
+    await prisma.user.deleteMany({ where: { id: userId } });
+  });
+
+  it('rolls a lapsed period forward and stops counting old usage against the new one', async () => {
+    // A subscription whose period ended a month ago — simulates a user who
+    // hasn't been checked since exhausting last period's quota.
+    const now = new Date();
+    const oldPeriodStart = new Date(now);
+    oldPeriodStart.setMonth(oldPeriodStart.getMonth() - 2);
+    const oldPeriodEnd = new Date(now);
+    oldPeriodEnd.setMonth(oldPeriodEnd.getMonth() - 1);
+
+    const user = await prisma.user.create({
+      data: {
+        email: `quota-rollover-${Date.now()}@example.com`,
+        passwordHash: 'unused-in-this-test',
+        subscription: {
+          create: {
+            plan: 'free',
+            status: 'active',
+            currentPeriodStart: oldPeriodStart,
+            currentPeriodEnd: oldPeriodEnd,
+          },
+        },
+      },
+    });
+    userId = user.id;
+
+    // Usage logged in the (now-lapsed) old period — used the full allowance.
+    const t = await prisma.transcription.create({
+      data: { userId, status: 'done', fileName: 'old.mp3', fileSizeBytes: 100 },
+    });
+    await prisma.usageLog.create({
+      data: { userId, transcriptionId: t.id, seconds: 30 * 60, createdAt: oldPeriodStart },
+    });
+
+    const status = await getQuotaStatus(userId);
+
+    // The old usage must not count against the freshly-rolled-forward period.
+    expect(status.usedMinutes).toBe(0);
+    expect(status.remainingMinutes).toBe(30);
+
+    // The subscription row itself must have been advanced, not just the read.
+    const updated = await prisma.subscription.findUniqueOrThrow({ where: { userId } });
+    expect(updated.currentPeriodStart.getTime()).toBeGreaterThan(oldPeriodStart.getTime());
+    expect(updated.currentPeriodEnd.getTime()).toBeGreaterThan(now.getTime());
+  });
+
+  it('does not touch a subscription whose current period has not lapsed', async () => {
+    const now = new Date();
+    const periodEnd = new Date(now);
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+    const user = await prisma.user.create({
+      data: {
+        email: `quota-no-rollover-${Date.now()}@example.com`,
+        passwordHash: 'unused-in-this-test',
+        subscription: {
+          create: {
+            plan: 'free',
+            status: 'active',
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+          },
+        },
+      },
+    });
+    userId = user.id;
+
+    await getQuotaStatus(userId);
+
+    const unchanged = await prisma.subscription.findUniqueOrThrow({ where: { userId } });
+    expect(unchanged.currentPeriodStart.getTime()).toBe(now.getTime());
+    expect(unchanged.currentPeriodEnd.getTime()).toBe(periodEnd.getTime());
+  });
+});

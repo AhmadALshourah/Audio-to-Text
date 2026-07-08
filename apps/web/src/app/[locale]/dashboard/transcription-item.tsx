@@ -4,6 +4,13 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import type { TranscriptionDTO } from '@/lib/serializers';
 import { formatBytes, formatDate, formatDuration } from '@/lib/format';
+import type { PollNotice } from './dashboard-client';
+
+const POLL_NOTICE_KEYS: Record<PollNotice, string> = {
+  auth: 'pollNoticeAuth',
+  network: 'pollNoticeNetwork',
+  timeout: 'pollNoticeTimeout',
+};
 
 const STATUS_STYLES: Record<TranscriptionDTO['status'], string> = {
   pending: 'bg-ink/10 text-ink/70',
@@ -30,7 +37,15 @@ function downloadSubtitles(id: string, format: 'srt' | 'vtt') {
   a.click();
 }
 
-export function TranscriptionItem({ item }: { item: TranscriptionDTO }) {
+interface TranscriptionItemProps {
+  item: TranscriptionDTO;
+  /** Set when polling for this (still in-flight) item stopped without ever
+   * reaching a final status — a session/network error, or a 3-minute
+   * timeout. Only meaningful while status is still pending/processing. */
+  pollNotice?: PollNotice;
+}
+
+export function TranscriptionItem({ item, pollNotice }: TranscriptionItemProps) {
   const t = useTranslations('dashboard');
   const [copied, setCopied] = useState(false);
 
@@ -52,10 +67,10 @@ export function TranscriptionItem({ item }: { item: TranscriptionDTO }) {
             {item.status}
           </span>
         </div>
-        <span className="text-xs text-ink/40">{formatDate(item.createdAt)}</span>
+        <span className="text-xs text-ink/65">{formatDate(item.createdAt)}</span>
       </div>
 
-      <div className="mt-1 flex gap-3 text-xs text-ink/50">
+      <div className="mt-1 flex gap-3 text-xs text-ink/70">
         <span>{formatBytes(item.fileSizeBytes)}</span>
         <span>{formatDuration(item.durationSeconds)}</span>
         {item.costUsd !== null && <span>${item.costUsd.toFixed(4)}</span>}
@@ -94,6 +109,10 @@ export function TranscriptionItem({ item }: { item: TranscriptionDTO }) {
 
       {item.status === 'failed' && item.errorMessage && (
         <p className="mt-2 text-sm text-red-600">{item.errorMessage}</p>
+      )}
+
+      {(item.status === 'pending' || item.status === 'processing') && pollNotice && (
+        <p className="mt-2 text-sm text-amber-700">{t(POLL_NOTICE_KEYS[pollNotice])}</p>
       )}
     </li>
   );
