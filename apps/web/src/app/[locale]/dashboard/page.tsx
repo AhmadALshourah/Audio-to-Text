@@ -2,10 +2,8 @@ import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { getQuotaStatus, listTranscriptions } from '@audio-to-text/core';
 import { getCurrentUser } from '@/lib/auth';
 import { serializeTranscription } from '@/lib/serializers';
-import { redirect, Link } from '@/i18n/navigation';
+import { redirect } from '@/i18n/navigation';
 import { DashboardClient } from './dashboard-client';
-import { SignOutButton } from './sign-out-button';
-import { DeleteAccountButton } from './delete-account-button';
 
 export const runtime = 'nodejs';
 
@@ -26,29 +24,19 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   ]);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-8">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-semibold">{t('title')}</h1>
-          <p className="text-sm text-ink/70">{user.name ?? user.email}</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard/settings" className="text-sm font-medium text-ink/60 hover:text-ink">
-            {t('settings')}
-          </Link>
-          <SignOutButton />
-        </div>
-      </header>
+    <main className="mx-auto w-full max-w-3xl px-6 py-10">
+      <div className="mb-8">
+        <span className="eyebrow">{t('title')}</span>
+        <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight">
+          {t('greeting', { name: user.name?.trim() || user.email.split('@')[0] || user.email })}
+        </h1>
+      </div>
 
       <DashboardClient
         initialQuota={quota}
         initialTranscriptions={transcriptions.map(serializeTranscription)}
         initialNextCursor={nextCursor}
       />
-
-      <div className="mt-6 flex justify-center border-t border-ink/10 pt-4">
-        <DeleteAccountButton />
-      </div>
     </main>
   );
 }

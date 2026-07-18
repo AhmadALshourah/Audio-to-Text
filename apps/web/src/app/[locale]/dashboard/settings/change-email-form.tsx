@@ -53,7 +53,7 @@ export function ChangeEmailForm({ currentEmail }: ChangeEmailFormProps) {
           maxLength={254}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded-md border border-ink/20 bg-paper px-3 py-2 outline-none focus:border-accent"
+          className="w-full rounded-lg border border-line bg-paper px-3.5 py-2.5 text-ink outline-none transition-colors focus:border-accent"
           autoComplete="email"
         />
       </label>
@@ -65,18 +65,18 @@ export function ChangeEmailForm({ currentEmail }: ChangeEmailFormProps) {
           maxLength={128}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded-md border border-ink/20 bg-paper px-3 py-2 outline-none focus:border-accent"
+          className="w-full rounded-lg border border-line bg-paper px-3.5 py-2.5 text-ink outline-none transition-colors focus:border-accent"
           autoComplete="current-password"
         />
       </label>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {success && <p className="text-sm text-green-700">{t('emailUpdated')}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
+      {success && <p className="text-sm text-ok">{t('emailUpdated')}</p>}
 
       <button
         type="submit"
         disabled={submitting}
-        className="self-start rounded-md bg-ink px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-black disabled:opacity-50"
+        className="self-start rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-dark disabled:opacity-50"
       >
         {submitting ? t('submitting') : t('saveEmail')}
       </button>

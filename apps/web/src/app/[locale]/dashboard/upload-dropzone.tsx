@@ -87,17 +87,35 @@ export function UploadDropzone({ onUpload, disabled }: UploadDropzoneProps) {
           setDragActive(false);
           if (!disabled) void processFile(e.dataTransfer.files[0]);
         }}
-        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-10 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+        className={`group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-12 text-center transition-all focus-visible:outline-none ${
           disabled
-            ? 'cursor-not-allowed border-ink/10 bg-paper-soft text-ink/30'
+            ? 'cursor-not-allowed border-line bg-paper-soft text-ink/30'
             : dragActive
-              ? 'border-accent bg-paper-soft'
-              : 'border-ink/20 hover:border-ink/40'
+              ? 'border-accent bg-accent-soft/50'
+              : 'border-line hover:border-accent/50 hover:bg-paper-soft/50'
         }`}
       >
-        <p className="font-medium">{disabled ? t('dropzoneBusy') : t('dropzoneIdle')}</p>
-        <p className="text-sm text-ink/70">
-          {AUDIO_CONSTRAINTS.SUPPORTED_FORMATS.join(', ')} · {t('dropzoneMax')}{' '}
+        <span
+          className={`grid h-12 w-12 place-items-center rounded-full transition-colors ${
+            disabled ? 'bg-ink/5 text-ink/30' : 'bg-accent-soft text-accent-dark'
+          }`}
+        >
+          {disabled ? (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
+              <path d="M21 12a9 9 0 1 1-6.2-8.6" />
+            </svg>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 16V4M7 9l5-5 5 5" />
+              <path d="M5 20h14" />
+            </svg>
+          )}
+        </span>
+        <p className="font-display text-lg font-medium">
+          {disabled ? t('dropzoneBusy') : t('dropzoneIdle')}
+        </p>
+        <p className="font-mono text-xs text-ink/50">
+          {AUDIO_CONSTRAINTS.SUPPORTED_FORMATS.join(' · ')} — {t('dropzoneMax')}{' '}
           {formatBytes(AUDIO_CONSTRAINTS.MAX_FILE_SIZE_BYTES)}
         </p>
         <input
@@ -111,7 +129,7 @@ export function UploadDropzone({ onUpload, disabled }: UploadDropzoneProps) {
           onChange={(e) => void processFile(e.target.files?.[0])}
         />
       </div>
-      {localError && <p className="mt-2 text-sm text-red-600">{localError}</p>}
+      {localError && <p className="mt-2 text-sm text-danger">{localError}</p>}
     </div>
   );
 }

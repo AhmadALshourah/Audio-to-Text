@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { setRequestLocale } from 'next-intl/server';
 import { VerifyEmailClient } from '../(auth)/verify-email-client';
+import { AuthShell } from '../(auth)/auth-shell';
 
 export const runtime = 'nodejs';
 
@@ -13,10 +14,10 @@ export default async function VerifyEmailPage({
   setRequestLocale(locale);
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
+    <AuthShell>
       <Suspense>
         <VerifyEmailClient />
       </Suspense>
-    </main>
+    </AuthShell>
   );
 }

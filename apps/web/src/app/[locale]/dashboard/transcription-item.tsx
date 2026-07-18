@@ -13,10 +13,10 @@ const POLL_NOTICE_KEYS: Record<PollNotice, string> = {
 };
 
 const STATUS_STYLES: Record<TranscriptionDTO['status'], string> = {
-  pending: 'bg-ink/10 text-ink/70',
+  pending: 'bg-paper-soft text-ink/60',
   processing: 'bg-accent-soft text-accent-dark',
-  done: 'bg-green-100 text-green-700',
-  failed: 'bg-red-100 text-red-700',
+  done: 'bg-ok-soft text-ok',
+  failed: 'bg-danger-soft text-danger',
 };
 
 function downloadText(fileName: string, text: string) {
@@ -36,6 +36,9 @@ function downloadSubtitles(id: string, format: 'srt' | 'vtt') {
   a.href = `/api/transcriptions/${id}/subtitles?format=${format}`;
   a.click();
 }
+
+const actionClass =
+  'rounded-full border border-line px-3 py-1 font-medium text-ink/75 transition-colors hover:border-accent/50 hover:text-accent-dark';
 
 interface TranscriptionItemProps {
   item: TranscriptionDTO;
@@ -57,50 +60,43 @@ export function TranscriptionItem({ item, pollNotice }: TranscriptionItemProps) 
   }
 
   return (
-    <li className="rounded-lg border border-ink/10 bg-paper p-4">
+    <li className="rounded-2xl border border-line bg-surface p-5 shadow-card">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{item.fileName}</span>
+        <div className="flex items-center gap-2.5">
+          <span className="truncate font-medium">{item.fileName}</span>
           <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[item.status]}`}
+            className={`rounded-full px-2.5 py-0.5 font-mono text-[0.7rem] font-medium uppercase tracking-wide ${STATUS_STYLES[item.status]}`}
           >
             {item.status}
           </span>
         </div>
-        <span className="text-xs text-ink/65">{formatDate(item.createdAt)}</span>
+        <span className="font-mono text-xs text-ink/45">{formatDate(item.createdAt)}</span>
       </div>
 
-      <div className="mt-1 flex gap-3 text-xs text-ink/70">
+      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-ink/55">
         <span>{formatBytes(item.fileSizeBytes)}</span>
         <span>{formatDuration(item.durationSeconds)}</span>
         {item.costUsd !== null && <span>${item.costUsd.toFixed(4)}</span>}
       </div>
 
       {item.status === 'done' && item.text !== null && (
-        <div className="mt-3">
-          <p className="whitespace-pre-wrap text-sm text-ink/80">
-            {item.text || t('noSpeechDetected')}
-          </p>
-          <div className="mt-2 flex gap-3 text-sm">
-            <button onClick={handleCopy} className="font-medium text-accent-dark underline">
+        <div className="mt-4">
+          <div className="max-h-56 overflow-y-auto rounded-xl border border-line bg-paper-soft/50 p-4">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink/85">
+              {item.text || t('noSpeechDetected')}
+            </p>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <button onClick={handleCopy} className={actionClass}>
               {copied ? t('copied') : t('copy')}
             </button>
-            <button
-              onClick={() => downloadText(item.fileName, item.text ?? '')}
-              className="font-medium text-accent-dark underline"
-            >
+            <button onClick={() => downloadText(item.fileName, item.text ?? '')} className={actionClass}>
               {t('downloadTxt')}
             </button>
-            <button
-              onClick={() => downloadSubtitles(item.id, 'srt')}
-              className="font-medium text-accent-dark underline"
-            >
+            <button onClick={() => downloadSubtitles(item.id, 'srt')} className={actionClass}>
               .srt
             </button>
-            <button
-              onClick={() => downloadSubtitles(item.id, 'vtt')}
-              className="font-medium text-accent-dark underline"
-            >
+            <button onClick={() => downloadSubtitles(item.id, 'vtt')} className={actionClass}>
               .vtt
             </button>
           </div>
@@ -108,11 +104,11 @@ export function TranscriptionItem({ item, pollNotice }: TranscriptionItemProps) 
       )}
 
       {item.status === 'failed' && item.errorMessage && (
-        <p className="mt-2 text-sm text-red-600">{item.errorMessage}</p>
+        <p className="mt-2 text-sm text-danger">{item.errorMessage}</p>
       )}
 
       {(item.status === 'pending' || item.status === 'processing') && pollNotice && (
-        <p className="mt-2 text-sm text-amber-700">{t(POLL_NOTICE_KEYS[pollNotice])}</p>
+        <p className="mt-2 text-sm text-warn">{t(POLL_NOTICE_KEYS[pollNotice])}</p>
       )}
     </li>
   );

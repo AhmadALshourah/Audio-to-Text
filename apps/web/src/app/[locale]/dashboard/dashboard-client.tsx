@@ -140,13 +140,18 @@ export function DashboardClient({
       <QuotaBar quota={quota} />
       <UploadDropzone onUpload={handleUpload} disabled={uploading} />
       {error && (
-        <p className="rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert">
+        <p
+          className="rounded-lg border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger"
+          role="alert"
+        >
           {error}
         </p>
       )}
 
       {items.length === 0 ? (
-        <p className="text-center text-sm text-ink/70">{t('noTranscriptions')}</p>
+        <div className="rounded-2xl border border-dashed border-line py-14 text-center">
+          <p className="text-sm text-ink/55">{t('noTranscriptions')}</p>
+        </div>
       ) : (
         <>
           <ul className="flex flex-col gap-3">
@@ -158,7 +163,7 @@ export function DashboardClient({
             <button
               onClick={handleLoadMore}
               disabled={loadingMore}
-              className="self-center text-sm font-medium text-ink/60 underline hover:text-ink disabled:opacity-50"
+              className="mx-auto rounded-full border border-line px-5 py-2 text-sm font-medium text-ink/70 transition-colors hover:border-ink/40 hover:text-ink disabled:opacity-50"
             >
               {loadingMore ? t('loadingMore') : t('loadMore')}
             </button>

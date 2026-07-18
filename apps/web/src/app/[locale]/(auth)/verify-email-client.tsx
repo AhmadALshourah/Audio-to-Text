@@ -46,16 +46,16 @@ export function VerifyEmailClient() {
 
   return (
     <div className="w-full max-w-sm text-center">
-      <h1 className="font-display text-2xl font-semibold tracking-tight">
+      <h1 className="font-display text-3xl font-semibold tracking-tight">
         {t('verifyEmailTitle')}
       </h1>
 
       {status === 'verifying' && <p className="mt-3 text-sm text-ink/60">{t('verifyingEmail')}</p>}
       {status === 'success' && (
-        <p className="mt-3 text-sm text-green-700">{t('emailVerified')}</p>
+        <p className="mt-3 text-sm text-ok">{t('emailVerified')}</p>
       )}
       {status === 'error' && (
-        <p className="mt-3 text-sm text-red-600">{error ?? t('verifyEmailMissingToken')}</p>
+        <p className="mt-3 text-sm text-danger">{error ?? t('verifyEmailMissingToken')}</p>
       )}
 
       <p className="mt-4 text-sm text-ink/60">

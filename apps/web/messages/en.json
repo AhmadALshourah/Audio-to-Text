@@ -13,16 +13,26 @@
     "terms": "Terms"
   },
   "hero": {
+    "eyebrow": "Voice, committed to text",
     "titleLine1": "Turn audio into accurate text",
     "titleLine2": "in seconds, not hours.",
     "subtitle": "Drop in a recording — a meeting, a lecture, a voice note — and get a clean transcript powered by OpenAI Whisper. No installs, no manual typing, no waiting around.",
     "ctaStart": "Start transcribing — free",
     "ctaOpenDashboard": "Open dashboard",
-    "seeHowItWorks": "See how it works ↓",
+    "seeHowItWorks": "See how it works",
     "freeNote": "Free plan includes {minutes} minutes of audio every month. No credit card required.",
     "imageAlt": "Abstract sound waveform resolving into clean lines, representing audio becoming text"
   },
+  "heroStudio": {
+    "live": "Live transcript",
+    "listening": "transcribing",
+    "file": "meeting-note.m4a",
+    "phrase1": "So the launch is set for the third — let's lock the copy by Friday.",
+    "phrase2": "Whisper handles accents and background noise remarkably well.",
+    "phrase3": "Every recording becomes searchable text in a matter of seconds."
+  },
   "howItWorks": {
+    "eyebrow": "The process",
     "heading": "How it works",
     "step1Title": "Upload your audio",
     "step1Body": "Drag & drop any common format — mp3, wav, m4a, flac, ogg and more. Files up to 25 MB.",
@@ -32,6 +42,7 @@
     "step3Body": "Your transcript is ready in seconds. Copy it to the clipboard or download it as a .txt file."
   },
   "features": {
+    "eyebrow": "Why Tadween",
     "heading": "Everything you need. Nothing you don't.",
     "f1Title": "Built on OpenAI Whisper",
     "f1Body": "The same model trusted across the industry for near-human transcription accuracy.",
@@ -47,6 +58,7 @@
     "f6Body": "Your files are processed for transcription only — never used to train models."
   },
   "pricing": {
+    "eyebrow": "Pricing",
     "heading": "Simple, honest pricing",
     "subheading": "No tiers, no credit card, no surprises.",
     "planName": "Free",
@@ -58,11 +70,13 @@
     "cta": "Get started free"
   },
   "finalCta": {
+    "eyebrow": "Get started",
     "heading": "Stop typing what you already said.",
     "subtitle": "Your first {minutes} minutes are free every month — upload a file and see the transcript for yourself.",
     "cta": "Start transcribing — free"
   },
   "footer": {
+    "tagline": "Voice, committed to text.",
     "copyright": "© {year} Tadween. Powered by OpenAI Whisper."
   },
   "auth": {
@@ -107,6 +121,7 @@
   },
   "dashboard": {
     "title": "Dashboard",
+    "greeting": "Welcome back, {name}",
     "planFree": "Free",
     "planPro": "Pro",
     "planSuffix": "plan",
@@ -149,7 +164,9 @@
     "passwordUpdated": "Password updated.",
     "savePassword": "Save password",
     "submitting": "Please wait…",
-    "genericError": "Something went wrong."
+    "genericError": "Something went wrong.",
+    "dangerTitle": "Danger zone",
+    "dangerDescription": "Permanently delete your account and all transcription history. This cannot be undone."
   },
   "legal": {
     "backToHome": "← Back to home",

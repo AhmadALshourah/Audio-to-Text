@@ -10,29 +10,27 @@ export function QuotaBar({ quota }: { quota: QuotaStatus }) {
   const planLabel = quota.plan === 'pro' ? t('planPro') : t('planFree');
 
   return (
-    <div className="rounded-lg border border-ink/10 bg-paper-soft p-4">
-      <div className="mb-2 flex items-center justify-between text-sm">
-        <span className="font-medium">
+    <div className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="inline-flex items-center gap-2 rounded-full bg-accent-soft px-3 py-1 font-mono text-xs font-medium uppercase tracking-wide text-accent-dark">
           {planLabel} {t('planSuffix')}
         </span>
-        <span className="text-ink/70">
+        <span className="font-mono text-sm text-ink/70">
           {t('quotaUsed', {
             used: quota.usedMinutes.toFixed(1),
             limit: quota.limitMinutes,
           })}
         </span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-ink/10">
+      <div className="h-2.5 w-full overflow-hidden rounded-full bg-paper-soft">
         <div
-          className={`h-full rounded-full ${isLow ? 'bg-red-500' : 'bg-accent'}`}
-          style={{ width: `${Math.min(100, pctUsed)}%` }}
+          className={`h-full rounded-full transition-all ${isLow ? 'bg-danger' : 'bg-accent'}`}
+          style={{ width: `${Math.min(100, Math.max(2, pctUsed))}%` }}
         />
       </div>
-      {isLow && (
-        <p className="mt-2 text-xs text-red-600">
-          {t('quotaRemaining', { minutes: quota.remainingMinutes.toFixed(1) })}
-        </p>
-      )}
+      <p className={`mt-2.5 text-xs ${isLow ? 'text-danger' : 'text-ink/55'}`}>
+        {t('quotaRemaining', { minutes: quota.remainingMinutes.toFixed(1) })}
+      </p>
     </div>
   );
 }

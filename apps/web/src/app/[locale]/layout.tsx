@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Space_Grotesk } from 'next/font/google';
+import { Fraunces, Instrument_Sans, JetBrains_Mono, IBM_Plex_Sans_Arabic } from 'next/font/google';
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -9,12 +9,43 @@ import '../globals.css';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
-const spaceGrotesk = Space_Grotesk({
+// Expressive editorial serif — the manuscript/codification voice of the brand.
+const fraunces = Fraunces({
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-display',
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-fraunces',
   display: 'swap',
 });
+
+// Clean, precise workhorse for body + UI.
+const instrument = Instrument_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-instrument',
+  display: 'swap',
+});
+
+// Metadata, eyebrows, timestamps — the "instrument panel" voice.
+const jetbrains = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-jetbrains',
+  display: 'swap',
+});
+
+// Full Arabic support (RTL) — swapped in for display + body under [dir=rtl].
+const plexArabic = IBM_Plex_Sans_Arabic({
+  subsets: ['arabic'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-arabic',
+  display: 'swap',
+});
+
+const fontVars = `${fraunces.variable} ${instrument.variable} ${jetbrains.variable} ${plexArabic.variable}`;
+
+// Runs before first paint to apply the saved/system theme with no flash.
+const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})();`;
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -50,11 +81,13 @@ export async function generateMetadata({
       siteName: t('siteName'),
       title: t('title'),
       description,
+      images: [{ url: '/images/og-image.png', width: 1376, height: 768, alt: t('siteName') }],
     },
     twitter: {
-      card: 'summary',
+      card: 'summary_large_image',
       title: t('title'),
       description,
+      images: ['/images/og-image.png'],
     },
     robots: { index: true, follow: true },
   };
@@ -76,9 +109,13 @@ export default async function LocaleLayout({
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
 
   return (
-    <html lang={locale} dir={dir} className={spaceGrotesk.variable}>
+    <html lang={locale} dir={dir} className={fontVars} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <div className="grain-overlay" aria-hidden="true" />
       </body>
     </html>
   );

@@ -11,6 +11,9 @@ interface AuthFormProps {
   mode: 'sign-in' | 'sign-up';
 }
 
+const inputClass =
+  'w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-accent';
+
 export function AuthForm({ mode }: AuthFormProps) {
   const t = useTranslations('auth');
   const locale = useLocale();
@@ -34,9 +37,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          isSignUp ? { email, password, name, locale } : { email, password },
-        ),
+        body: JSON.stringify(isSignUp ? { email, password, name, locale } : { email, password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -53,27 +54,28 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   return (
     <div className="w-full max-w-sm">
-      <h1 className="font-display text-2xl font-semibold tracking-tight">
+      <span className="eyebrow">{isSignUp ? t('signUpLink') : t('signInLink')}</span>
+      <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight">
         {isSignUp ? t('signUpTitle') : t('signInTitle')}
       </h1>
-      <p className="mt-1 text-sm text-ink/70">
+      <p className="mt-2 text-sm text-ink/65">
         {isSignUp ? t('signUpSubtitle') : t('signInSubtitle')}
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="mt-7 flex flex-col gap-4">
         {isSignUp && (
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-medium">{t('nameLabel')}</span>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="rounded-md border border-ink/20 bg-paper px-3 py-2 outline-none focus:border-accent"
+              className={inputClass}
               autoComplete="name"
             />
           </label>
         )}
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm">
           <span className="font-medium">{t('emailLabel')}</span>
           <input
             type="email"
@@ -81,15 +83,18 @@ export function AuthForm({ mode }: AuthFormProps) {
             maxLength={254}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-md border border-ink/20 bg-paper px-3 py-2 outline-none focus:border-accent"
+            className={inputClass}
             autoComplete="email"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm">
           <span className="flex items-center justify-between font-medium">
             {t('passwordLabel')}
             {!isSignUp && (
-              <Link href="/forgot-password" className="text-xs font-normal underline text-ink/70">
+              <Link
+                href="/forgot-password"
+                className="text-xs font-normal text-ink/60 underline underline-offset-2 hover:text-ink"
+              >
                 {t('forgotPassword')}
               </Link>
             )}
@@ -101,22 +106,22 @@ export function AuthForm({ mode }: AuthFormProps) {
             maxLength={128}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded-md border border-ink/20 bg-paper px-3 py-2 outline-none focus:border-accent"
+            className={inputClass}
             autoComplete={isSignUp ? 'new-password' : 'current-password'}
           />
-          {isSignUp && <span className="text-xs text-ink/65">{t('passwordHint')}</span>}
+          {isSignUp && <span className="text-xs text-ink/55">{t('passwordHint')}</span>}
         </label>
 
         {isSignUp && (
-          <label className="flex items-start gap-2 text-xs text-ink/60">
+          <label className="flex items-start gap-2 text-xs text-ink/65">
             <input type="checkbox" required className="mt-0.5 h-3.5 w-3.5 accent-accent" />
             <span>
               {t('consentPrefix')}{' '}
-              <Link href="/terms" className="font-medium underline" target="_blank">
+              <Link href="/terms" className="font-medium underline underline-offset-2" target="_blank">
                 {t('termsLink')}
               </Link>{' '}
               {t('consentAnd')}{' '}
-              <Link href="/privacy" className="font-medium underline" target="_blank">
+              <Link href="/privacy" className="font-medium underline underline-offset-2" target="_blank">
                 {t('privacyLink')}
               </Link>
               {t('consentSuffix')}
@@ -124,29 +129,33 @@ export function AuthForm({ mode }: AuthFormProps) {
           </label>
         )}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">
+            {error}
+          </p>
+        )}
 
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-paper transition-colors hover:bg-black disabled:opacity-50"
+          className="mt-1 rounded-full bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-dark disabled:opacity-50"
         >
           {submitting ? t('submitting') : isSignUp ? t('createAccount') : t('signIn')}
         </button>
       </form>
 
-      <p className="mt-4 text-sm text-ink/60">
+      <p className="mt-6 text-sm text-ink/60">
         {isSignUp ? (
           <>
             {t('alreadyHaveAccount')}{' '}
-            <Link href="/sign-in" className="font-medium underline">
+            <Link href="/sign-in" className="font-medium text-accent-dark underline underline-offset-2">
               {t('signInLink')}
             </Link>
           </>
         ) : (
           <>
             {t('noAccount')}{' '}
-            <Link href="/sign-up" className="font-medium underline">
+            <Link href="/sign-up" className="font-medium text-accent-dark underline underline-offset-2">
               {t('signUpLink')}
             </Link>
           </>

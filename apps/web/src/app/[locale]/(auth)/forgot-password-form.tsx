@@ -39,7 +39,7 @@ export function ForgotPasswordForm() {
   if (sent) {
     return (
       <div className="w-full max-w-sm">
-        <h1 className="font-display text-2xl font-semibold tracking-tight">
+        <h1 className="font-display text-3xl font-semibold tracking-tight">
           {t('forgotPasswordTitle')}
         </h1>
         <p className="mt-3 text-sm text-ink/70">{t('forgotPasswordSent')}</p>
@@ -68,17 +68,21 @@ export function ForgotPasswordForm() {
             maxLength={254}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-md border border-ink/20 bg-paper px-3 py-2 outline-none focus:border-accent"
+            className="w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-ink outline-none transition-colors placeholder:text-ink/35 focus:border-accent"
             autoComplete="email"
           />
         </label>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
 
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-paper transition-colors hover:bg-black disabled:opacity-50"
+          className="rounded-full bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast transition-colors hover:bg-accent-dark disabled:opacity-50"
         >
           {submitting ? t('submitting') : t('sendResetLink')}
         </button>
