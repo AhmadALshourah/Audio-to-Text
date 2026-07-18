@@ -11,9 +11,15 @@ const isProd = process.env.NODE_ENV === 'production';
 // relies on inline scripts, and closing this fully needs per-request nonce
 // middleware we haven't built. Still meaningfully blocks any injected script
 // from loading additional script/object/frame content from elsewhere.
+// 'unsafe-eval' is added in dev only: Next's webpack dev bundles wrap modules
+// in eval() for HMR/source maps, so without it the browser silently blocks
+// all client script execution — React never hydrates and anything that only
+// renders after hydration (framer-motion's whileInView reveals, etc.) stays
+// stuck at its pre-hydration state forever. Production builds don't use
+// eval(), so this gap doesn't exist there.
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
