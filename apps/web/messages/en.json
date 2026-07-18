@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "siteName": "Audio→Text",
-    "title": "Audio→Text — Turn audio into accurate text in seconds",
+    "siteName": "Tadween",
+    "title": "Tadween — Turn audio into accurate text in seconds",
     "description": "Upload a recording and get a clean, accurate transcript powered by OpenAI Whisper. Free plan with {minutes} minutes of audio every month — no credit card required."
   },
   "nav": {
@@ -63,7 +63,7 @@
     "cta": "Start transcribing — free"
   },
   "footer": {
-    "copyright": "© {year} Audio→Text. Powered by OpenAI Whisper."
+    "copyright": "© {year} Tadween. Powered by OpenAI Whisper."
   },
   "auth": {
     "signUpTitle": "Create your account",

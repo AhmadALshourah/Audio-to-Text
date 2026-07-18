@@ -31,7 +31,7 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
   await send(
     to,
     'Reset your password',
-    `<p>We received a request to reset your Audio→Text password.</p>
+    `<p>We received a request to reset your Tadween password.</p>
 <p><a href="${resetUrl}">Click here to choose a new password</a>. This link expires in 1 hour.</p>
 <p>If you didn't request this, you can safely ignore this email.</p>`,
   );
@@ -42,7 +42,7 @@ export async function sendVerificationEmail(to: string, verifyUrl: string): Prom
   await send(
     to,
     'Confirm your email address',
-    `<p>Please confirm this is your email address for Audio→Text.</p>
+    `<p>Please confirm this is your email address for Tadween.</p>
 <p><a href="${verifyUrl}">Click here to confirm your email</a>. This link expires in 24 hours.</p>
 <p>If you didn't create this account, you can safely ignore this email.</p>`,
   );

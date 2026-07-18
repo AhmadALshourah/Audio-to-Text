@@ -1,8 +1,8 @@
 {
-  "name": "audio-to-text",
+  "name": "tadween",
   "version": "0.1.0",
   "private": true,
-  "description": "Audio-to-Text SaaS — transcribe audio to text using OpenAI Whisper",
+  "description": "Tadween (تدوين) SaaS — transcribe audio to text using OpenAI Whisper",
   "packageManager": "pnpm@11.9.0",
   "engines": {
     "node": ">=20"

@@ -1,4 +1,4 @@
-# Audio-to-Text
+# Tadween (تدوين)
 
 [![CI](https://github.com/AhmadALshourah/Audio-to-Text/actions/workflows/ci.yml/badge.svg)](https://github.com/AhmadALshourah/Audio-to-Text/actions/workflows/ci.yml)
 
@@ -17,7 +17,7 @@ A **pnpm + Turborepo monorepo** with a clean split between the user-facing web
 app and the background transcription work:
 
 ```
-Audio-to-Text/
+Tadween/
 ├── apps/
 │   ├── web/          Next.js 14 (App Router) — UI, API routes, self-built auth
 │   └── worker/       Node service — polls SQLite for jobs, calls Whisper

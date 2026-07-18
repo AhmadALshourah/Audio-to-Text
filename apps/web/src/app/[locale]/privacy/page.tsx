@@ -5,11 +5,11 @@ import { PLAN_MONTHLY_MINUTES, MAX_TRANSCRIPTION_ATTEMPTS } from '@audio-to-text
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'How Audio→Text collects, uses, and deletes your data.',
+  description: 'How Tadween collects, uses, and deletes your data.',
 };
 
 // TODO: replace with your real support address before a public launch.
-const SUPPORT_EMAIL = 'support@audio-to-text.app';
+const SUPPORT_EMAIL = 'support@tadween.app';
 
 export default async function PrivacyPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -18,7 +18,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
   return (
     <LegalPage title="Privacy Policy" lastUpdated="July 2026">
       <p>
-        Audio→Text (&quot;we&quot;, &quot;the service&quot;) transcribes audio you upload into text.
+        Tadween (&quot;we&quot;, &quot;the service&quot;) transcribes audio you upload into text.
         This page explains what data we collect, why, and — most importantly — what happens to your
         audio files.
       </p>

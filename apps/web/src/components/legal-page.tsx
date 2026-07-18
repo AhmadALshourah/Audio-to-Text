@@ -11,12 +11,13 @@ interface LegalPageProps {
 /** Shared shell for /privacy and /terms — simple header, prose-styled body. */
 export async function LegalPage({ title, lastUpdated, children }: LegalPageProps) {
   const t = await getTranslations('legal');
+  const tMeta = await getTranslations('metadata');
 
   return (
     <>
       <header className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-5">
-        <Link href="/" className="font-display text-sm font-semibold tracking-tight" dir="ltr">
-          Audio→Text
+        <Link href="/" className="font-display text-sm font-semibold tracking-tight">
+          {tMeta('siteName')}
         </Link>
         <Link href="/" className="text-sm text-ink/60 hover:text-ink">
           {t('backToHome')}

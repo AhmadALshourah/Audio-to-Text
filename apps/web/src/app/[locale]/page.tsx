@@ -34,10 +34,11 @@ function PrimaryCta({
 
 async function Header({ signedIn }: { signedIn: boolean }) {
   const t = await getTranslations('nav');
+  const tMeta = await getTranslations('metadata');
   return (
     <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-5">
-      <span className="font-display text-sm font-semibold tracking-tight" dir="ltr">
-        Audio→Text
+      <span className="font-display text-sm font-semibold tracking-tight">
+        {tMeta('siteName')}
       </span>
       <nav className="flex items-center gap-5 text-sm">
         <a href="#how-it-works" className="text-ink/60 hover:text-ink">

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-//  Audio-to-Text — data model
+//  Tadween — data model
 //
 //  Self-contained stack: SQLite (single file, no external DB).
 //  SQLite has no native enums, so status/plan are String columns whose
