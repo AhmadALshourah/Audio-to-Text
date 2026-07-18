@@ -17,11 +17,10 @@ export function ThemeToggle() {
   function toggle() {
     const next = !document.documentElement.classList.contains('dark');
     document.documentElement.classList.toggle('dark', next);
-    try {
-      localStorage.setItem('theme', next ? 'dark' : 'light');
-    } catch {
-      /* ignore private-mode storage errors */
-    }
+    // Persist in a cookie so the *server* renders the right class on the next
+    // navigation (a locale switch remounts <html> — a client-only class would
+    // be discarded). max-age = 1 year.
+    document.cookie = `theme=${next ? 'dark' : 'light'};path=/;max-age=31536000;samesite=lax`;
     setDark(next);
   }
 

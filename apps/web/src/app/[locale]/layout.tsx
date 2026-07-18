@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import { Fraunces, Instrument_Sans, JetBrains_Mono, IBM_Plex_Sans_Arabic } from 'next/font/google';
+import { cookies } from 'next/headers';
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { PLAN_MONTHLY_MINUTES } from '@audio-to-text/shared/types';
+import { THEME_COOKIE } from '@/lib/theme';
 import '../globals.css';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
@@ -44,8 +46,12 @@ const plexArabic = IBM_Plex_Sans_Arabic({
 
 const fontVars = `${fraunces.variable} ${instrument.variable} ${jetbrains.variable} ${plexArabic.variable}`;
 
-// Runs before first paint to apply the saved/system theme with no flash.
-const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})();`;
+// Applied before first paint on every hard load: read the theme cookie (or the
+// OS preference on a first visit) and set the class, so the theme is correct
+// even for statically-prerendered pages that couldn't know the per-user cookie
+// at build time. The cookie also drives the server render (see below), which
+// is what keeps a locale switch — it remounts <html> — from wiping the theme.
+const THEME_SCRIPT = `(function(){try{var m=document.cookie.match(/(?:^|; )theme=(dark|light)/);var t=m?m[1]:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.classList.toggle('dark',t==='dark');if(!m)document.cookie='theme='+t+';path=/;max-age=31536000;samesite=lax';}catch(e){}})();`;
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -107,9 +113,13 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
 
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
+  // Render the theme class server-side from the cookie so it's present from the
+  // first byte and survives a locale switch (which remounts this layout).
+  const isDark = cookies().get(THEME_COOKIE)?.value === 'dark';
+  const htmlClass = isDark ? `${fontVars} dark` : fontVars;
 
   return (
-    <html lang={locale} dir={dir} className={fontVars} suppressHydrationWarning>
+    <html lang={locale} dir={dir} className={htmlClass} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
